@@ -1,6 +1,8 @@
 ﻿#include "filterdatacontroller.h"
 #include <QTimer>
 #include <QFile>
+#include <QDesktopServices>
+#include <QUrl>
 #include "Utility/ImPath.h"
 #include "settingmanager.h"
 #include "datamanager.h"
@@ -686,7 +688,11 @@ void FilterDataController::onFilterRunFinish(DataFilter* dataFilter)
     if (m_dataFilters.empty())
     {
         emit printLog(QString::fromWCharArray(L"筛选数据完成，共%1条").arg(m_stockDatas.size()));
-        saveStockData();
+        if (!m_stockDatas.isEmpty())
+        {
+            saveStockData();
+        }
+        emit runFinish();
     }
 }
 
@@ -776,12 +782,12 @@ void FilterDataController::saveStockData()
     {
         resultFile.write(result.toUtf8());
         resultFile.close();
+        QDesktopServices::openUrl(QUrl::fromLocalFile(QString::fromStdWString(CImPath::GetDataPath())));
     }
     else
     {
         qCritical("failed to open the result file");
-    }
+    }    
 
-    emit printLog(QString::fromWCharArray(L"保存数据完成"));
-    emit runFinish();
+    emit printLog(QString::fromWCharArray(L"保存数据完成"));    
 }

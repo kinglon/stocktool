@@ -42,6 +42,8 @@ void MainWindow::initCtrls()
         findChild<QLineEdit*>(editCtrlName)->setText(SettingManager::getInstance()->m_filterCondition[i].m_twoExclude);
     }
 
+    ui->endDateEdit->setDate(QDate::currentDate());
+
     connect(ui->loadDataButton, &QPushButton::clicked, this, &MainWindow::onLoadDataButtonClicked);
     connect(ui->filterDataButton, &QPushButton::clicked, this, &MainWindow::onFilterDataButtonClicked);
 }

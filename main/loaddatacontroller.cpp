@@ -6,6 +6,10 @@
 #include <QDateTime>
 #include "Utility/ImPath.h"
 
+QString YiWord = QString::fromWCharArray(L"巳");
+QString WuWord = QString::fromWCharArray(L"午");
+QString WeiWord = QString::fromWCharArray(L"未");
+
 StockFileScanner::StockFileScanner(QObject *parent)
     : QObject{parent}
 {
@@ -19,7 +23,7 @@ void StockFileScanner::run()
     QDir dir(stockPath);
     QDir::Filters filters = QDir::Dirs | QDir::NoDotAndDotDot;
     QFileInfoList fileInfoList = dir.entryInfoList(filters);
-    QString suffixes;
+    QStringList suffixes;
     suffixes.append(QString::fromWCharArray(L"年.csv"));
     suffixes.append(QString::fromWCharArray(L"月.csv"));
     suffixes.append(QString::fromWCharArray(L"日.csv"));
@@ -48,8 +52,8 @@ void StockFileLoader::run()
 {
     foreach(const QString& stockFile, m_stockFiles)
     {
-        QFile file(stockFile);
-        QString fileName = file.fileName();
+        QFileInfo fileInfo(stockFile);
+        QString fileName = fileInfo.fileName();
         QString stockName;
         int dataType = -1;
         if (!getStockNameAndType(fileName, stockName, dataType))
@@ -57,6 +61,7 @@ void StockFileLoader::run()
             continue;
         }
 
+        QFile file(stockFile);
         if (!file.open(QIODevice::ReadOnly | QIODevice::Text))
         {
             qCritical("failed to open file: %s", stockFile.toStdString().c_str());
@@ -175,25 +180,25 @@ void StockFileLoader::processOneLine(const QString& stockName, int dataType, con
             return;
         }
 
-        int index = newFields[0].indexOf(QString::fromWCharArray(L"日"));
-        if (index < 0)
+        // 时数据，有大量不需要，优先过滤掉
+        QString dateString;
+        if (dataType == STOCK_DATA_HOUR)
         {
-            return;
+            stockData.m_hour = newFields[0].right(1);
+            if (stockData.m_hour != YiWord || stockData.m_hour != WuWord || stockData.m_hour != WeiWord)
+            {
+                return;
+            }
+            dateString = newFields[0].left(newFields[0].length()-1);
+        }
+        else
+        {
+            dateString = newFields[0];
         }
 
-        QString date = newFields[0].left(index+1);
-        QDateTime dateTime = QDateTime::fromString(date, QString::fromWCharArray(L"yyyy年 M月 d日"));
+        QDateTime dateTime = QDateTime::fromString(dateString, QString::fromWCharArray(L"yyyy年 M月 d日"));
         stockData.m_beginTime = dateTime.toSecsSinceEpoch();
         stockData.m_endTime = stockData.m_beginTime;
-
-        stockData.m_hour = newFields[0].mid(index+1);
-        if (!stockData.m_hour.isEmpty() && (
-                    stockData.m_hour != QString::fromWCharArray(L"巳") ||
-                    stockData.m_hour != QString::fromWCharArray(L"午") ||
-                    stockData.m_hour != QString::fromWCharArray(L"未")))
-        {
-            return;
-        }
 
         for (int i=0; i<MAX_STOCK_DATA_COUNT; i++)
         {
@@ -203,7 +208,7 @@ void StockFileLoader::processOneLine(const QString& stockName, int dataType, con
 
     m_stockDatas[dataType].append(stockData);
     m_count++;
-    if (m_count % 10000 == 0)
+    if (m_count % 1000 == 0)
     {
         emit reportProgress(m_count);
         m_count = 0;
