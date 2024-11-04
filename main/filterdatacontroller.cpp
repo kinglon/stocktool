@@ -130,19 +130,49 @@ void DataFilter::filterNotOnlyToMonth(QDate date)
     }
     dayStockDatas.clear();
 
-    // 筛选时的数据
-    if (!SettingManager::getInstance()->m_filterCondition[YI_HOUR_FILTER_CONDTION].isEnable() &&
-            !SettingManager::getInstance()->m_filterCondition[WU_HOUR_FILTER_CONDTION].isEnable() &&
-            !SettingManager::getInstance()->m_filterCondition[WEI_HOUR_FILTER_CONDTION].isEnable())
+    // 筛选已时数据
+    QVector<StockData> yiHourStockDatas;
+    if (!SettingManager::getInstance()->m_filterCondition[YI_HOUR_FILTER_CONDTION].isEnable())
     {
-        m_stockDatas.append(secondDayStockDatas);
+        yiHourStockDatas = secondDayStockDatas;
     }
     else
     {
-        QVector<StockData> hourDayStockDatas;
-        filterHourData(date, secondDayStockDatas, hourDayStockDatas);
-        m_stockDatas.append(hourDayStockDatas);
+        filterHourData(date, secondDayStockDatas, STOCK_DATA_HOUR_YI, YI_HOUR_FILTER_CONDTION, yiHourStockDatas);
     }
+    if (yiHourStockDatas.empty())
+    {
+        return;
+    }
+    secondDayStockDatas.clear();
+
+    // 筛选午时数据
+    QVector<StockData> wuHourStockDatas;
+    if (!SettingManager::getInstance()->m_filterCondition[WU_HOUR_FILTER_CONDTION].isEnable())
+    {
+        wuHourStockDatas = yiHourStockDatas;
+    }
+    else
+    {
+        filterHourData(date, yiHourStockDatas, STOCK_DATA_HOUR_WU, WU_HOUR_FILTER_CONDTION, wuHourStockDatas);
+    }
+    if (wuHourStockDatas.empty())
+    {
+        return;
+    }
+    yiHourStockDatas.clear();
+
+    // 筛选未时数据
+    QVector<StockData> weiHourStockDatas;
+    if (!SettingManager::getInstance()->m_filterCondition[WEI_HOUR_FILTER_CONDTION].isEnable())
+    {
+        weiHourStockDatas = wuHourStockDatas;
+    }
+    else
+    {
+        filterHourData(date, wuHourStockDatas, STOCK_DATA_HOUR_WEI, WEI_HOUR_FILTER_CONDTION, weiHourStockDatas);
+    }
+    m_stockDatas.append(weiHourStockDatas);
 }
 
 int DataFilter::findIndex(const QVector<StockData>& stockDatas, qint64 beginSearchTime)
@@ -384,13 +414,13 @@ void DataFilter::filterSecondDayData(QDate date, const QVector<StockData>& daySt
     }
 }
 
-void DataFilter::filterHourData(QDate date, const QVector<StockData>& dayStockDatas, QVector<StockData>& hourStockDatas)
+void DataFilter::filterHourData(QDate date, const QVector<StockData>& matchStockDatas, int dataType, int filterType, QVector<StockData>& hourStockDatas)
 {
     QDateTime beginSearchDateTime;
     beginSearchDateTime.setDate(date);
     qint64 beginSearchTime = beginSearchDateTime.toSecsSinceEpoch();
 
-    const QVector<StockData>& stockDatas = DataManager::getInstance()->m_stockDatas[STOCK_DATA_HOUR];
+    const QVector<StockData>& stockDatas = DataManager::getInstance()->m_stockDatas[dataType];
     int left = findIndex(stockDatas, beginSearchTime);
 
     // 开始筛选
@@ -401,26 +431,9 @@ void DataFilter::filterHourData(QDate date, const QVector<StockData>& dayStockDa
         bool ok = false;
         if (currentStockData.m_beginTime == filterTime)
         {
-            if (currentStockData.m_hour == QString::fromWCharArray(L"已"))
+            if (checkIfStockDataOk(currentStockData, SettingManager::getInstance()->m_filterCondition[filterType]))
             {
-                if (checkIfStockDataOk(currentStockData, SettingManager::getInstance()->m_filterCondition[YI_HOUR_FILTER_CONDTION]))
-                {
-                    ok = true;
-                }
-            }
-            else if (currentStockData.m_hour == QString::fromWCharArray(L"午"))
-            {
-                if (checkIfStockDataOk(currentStockData, SettingManager::getInstance()->m_filterCondition[WU_HOUR_FILTER_CONDTION]))
-                {
-                    ok = true;
-                }
-            }
-            else if (currentStockData.m_hour == QString::fromWCharArray(L"未"))
-            {
-                if (checkIfStockDataOk(currentStockData, SettingManager::getInstance()->m_filterCondition[WEI_HOUR_FILTER_CONDTION]))
-                {
-                    ok = true;
-                }
+                ok = true;
             }
         }
 
@@ -431,7 +444,7 @@ void DataFilter::filterHourData(QDate date, const QVector<StockData>& dayStockDa
 
         if (ok)
         {
-            for (const auto& stockData : dayStockDatas)
+            for (const auto& stockData : matchStockDatas)
             {
                 if (currentStockData.m_stockName == stockData.m_stockName)
                 {
@@ -447,14 +460,15 @@ void DataFilter::filterHourData(QDate date, const QVector<StockData>& dayStockDa
 
 bool DataFilter::checkIfStockDataOk(StockData stockData, const FilterCondition& filterCondition)
 {
-    // 有空字先借位
     QString data1 = stockData.m_data[0];
     QString data2 = stockData.m_data[1];
-    if (stockData.m_data[0].indexOf(QString::fromWCharArray(L"空") >= 0))
+
+    // 有空字先借位    
+    if (stockData.m_data[0].indexOf(QString::fromWCharArray(L"空")) >= 0)
     {
         stockData.m_data[0] += data2;
     }
-    if (stockData.m_data[1].indexOf(QString::fromWCharArray(L"空") >= 0))
+    if (stockData.m_data[1].indexOf(QString::fromWCharArray(L"空")) >= 0)
     {
         stockData.m_data[1] += data1;
     }
@@ -471,81 +485,103 @@ bool DataFilter::checkIfStockDataOk(StockData stockData, const FilterCondition& 
     }
 
     // 一二宫有存字，就删除禄字
-    if (stockData.m_data[0].indexOf(QString::fromWCharArray(L"存")) >= 0 ||
-            stockData.m_data[1].indexOf(QString::fromWCharArray(L"存")) >= 0)
+    if (data1.indexOf(QString::fromWCharArray(L"存")) >= 0 ||
+            data2.indexOf(QString::fromWCharArray(L"存")) >= 0)
     {
         stockData.m_data[0].replace(QString::fromWCharArray(L"禄"), "");
         stockData.m_data[1].replace(QString::fromWCharArray(L"禄"), "");
     }
 
+    // 一二宫有禄字，就删除存字
+    if (data1.indexOf(QString::fromWCharArray(L"禄")) >= 0 ||
+            data2.indexOf(QString::fromWCharArray(L"禄")) >= 0)
+    {
+        stockData.m_data[0].replace(QString::fromWCharArray(L"存"), "");
+        stockData.m_data[1].replace(QString::fromWCharArray(L"存"), "");
+    }
+
     // 检查一宫不含
+    bool ok = false;
     for (int i=0; i<filterCondition.m_oneExclude.length(); i++)
     {
-        if (stockData.m_data[0].indexOf(filterCondition.m_oneExclude[i]) >= 0)
+        if (stockData.m_data[0].indexOf(filterCondition.m_oneExclude[i]) < 0)
         {
-            return false;
+            ok = true;
+            break;
         }
+    }
+    if (filterCondition.m_oneExclude.length() > 0 && !ok)
+    {
+        return false;
     }
 
     // 检查二宫不含
+    ok = false;
     for (int i=0; i<filterCondition.m_twoExclude.length(); i++)
     {
-        if (stockData.m_data[1].indexOf(filterCondition.m_twoExclude[i]) >= 0)
+        if (stockData.m_data[1].indexOf(filterCondition.m_twoExclude[i]) < 0)
         {
-            return false;
+            ok = true;
+            break;
         }
+    }
+    if (filterCondition.m_twoExclude.length() > 0 && !ok)
+    {
+        return false;
     }
 
     // 检查一宫含
-    for (int i=0; i<filterCondition.m_oneInclude; i++)
+    ok = false;
+    for (int i=0; i<filterCondition.m_oneInclude.length(); i++)
     {
         QString word = filterCondition.m_oneInclude[i];
         if (word == QString::fromWCharArray(L"存"))
         {
-            if (!hasCunWord(stockData.m_data[0], stockData.m_data[0], stockData.m_data[1]))
+            if (hasCunWord(stockData.m_data[0], stockData.m_data[0], stockData.m_data[1]))
             {
-                return false;
+                ok = true;
+                break;
             }
         }
         else
         {
-            if (stockData.m_data[0].indexOf(word) < 0)
+            if (stockData.m_data[0].indexOf(word) >= 0 && haveWordWithoutKuohao(word, stockData.m_data))
             {
-                return false;
-            }
-
-            // 如果只是有前后括号，返回false
-            if (!haveWordWithoutKuohao(word, stockData.m_data))
-            {
-                return false;
+                ok = true;
+                break;
             }
         }
     }
+    if (filterCondition.m_oneInclude.length() > 0 && !ok)
+    {
+        return false;
+    }
 
     // 检查二宫含
+    ok = false;
     for (int i=0; i<filterCondition.m_twoInclude.length(); i++)
     {
         QString word = filterCondition.m_twoInclude[i];
         if (word == QString::fromWCharArray(L"存"))
         {
-            if (!hasCunWord(stockData.m_data[1], stockData.m_data[0], stockData.m_data[1]))
+            if (hasCunWord(stockData.m_data[1], stockData.m_data[0], stockData.m_data[1]))
             {
-                return false;
+                ok = true;
+                break;
             }
         }
         else
         {
-            if (stockData.m_data[1].indexOf(word) < 0)
+            if (stockData.m_data[1].indexOf(word) >= 0 && haveWordWithoutKuohao(word, stockData.m_data))
             {
-                return false;
-            }
-
-            // 如果只是有前后括号，返回false
-            if (!haveWordWithoutKuohao(word, stockData.m_data))
-            {
-                return false;
+                ok = true;
+                break;
             }
         }
+    }
+    if (filterCondition.m_twoInclude.length() > 0 && !ok)
+    {
+        return false;
     }
 
     return true;

@@ -168,7 +168,7 @@ void StockFileLoader::processOneLine(const QString& stockName, int dataType, con
         }
         stockData.m_endTime = endTime.toSecsSinceEpoch();
 
-        for (int i=0; i<MAX_STOCK_DATA_COUNT; i++)
+        for (int i=0; i<DATA_FIELD_LENGTH; i++)
         {
             stockData.m_data[i] = newFields[3+i];
         }
@@ -185,7 +185,7 @@ void StockFileLoader::processOneLine(const QString& stockName, int dataType, con
         if (dataType == STOCK_DATA_HOUR)
         {
             stockData.m_hour = newFields[0].right(1);
-            if (stockData.m_hour != YiWord || stockData.m_hour != WuWord || stockData.m_hour != WeiWord)
+            if (stockData.m_hour != YiWord && stockData.m_hour != WuWord && stockData.m_hour != WeiWord)
             {
                 return;
             }
@@ -200,13 +200,33 @@ void StockFileLoader::processOneLine(const QString& stockName, int dataType, con
         stockData.m_beginTime = dateTime.toSecsSinceEpoch();
         stockData.m_endTime = stockData.m_beginTime;
 
-        for (int i=0; i<MAX_STOCK_DATA_COUNT; i++)
+        for (int i=0; i<DATA_FIELD_LENGTH; i++)
         {
             stockData.m_data[i] = newFields[1+i];
         }
     }
 
-    m_stockDatas[dataType].append(stockData);
+    if (dataType == STOCK_DATA_HOUR)
+    {
+        // 时要分已午未
+        if (stockData.m_hour == YiWord)
+        {
+            m_stockDatas[STOCK_DATA_HOUR_YI].append(stockData);
+        }
+        else if (stockData.m_hour == WuWord)
+        {
+            m_stockDatas[STOCK_DATA_HOUR_WU].append(stockData);
+        }
+        else if (stockData.m_hour == WeiWord)
+        {
+            m_stockDatas[STOCK_DATA_HOUR_WEI].append(stockData);
+        }
+    }
+    else
+    {
+        m_stockDatas[dataType].append(stockData);
+    }
+
     m_count++;
     if (m_count % 1000 == 0)
     {

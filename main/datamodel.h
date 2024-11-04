@@ -34,6 +34,8 @@ public:
     }
 };
 
+#define DATA_FIELD_LENGTH   4
+
 // 用来存储一条股票信息
 class StockData
 {
@@ -52,7 +54,7 @@ public:
     QString m_hour;
 
     // 数据，4个字段，又称一二三四宫
-    QString m_data[4];
+    QString m_data[DATA_FIELD_LENGTH];
 };
 
 #endif // DATAMODEL_H

@@ -33,7 +33,7 @@ private:
 
     void filterSecondDayData(QDate date, const QVector<StockData>& dayStockDatas, QVector<StockData>& secondDayStockDatas);
 
-    void filterHourData(QDate date, const QVector<StockData>& dayStockDatas, QVector<StockData>& hourStockDatas);
+    void filterHourData(QDate date, const QVector<StockData>& dayStockDatas, int dataType, int filterType, QVector<StockData>& hourStockDatas);
 
     // 检查是否满足条件
     bool checkIfStockDataOk(StockData stockData, const FilterCondition& filterCondition);

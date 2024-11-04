@@ -42,6 +42,7 @@ void MainWindow::initCtrls()
         findChild<QLineEdit*>(editCtrlName)->setText(SettingManager::getInstance()->m_filterCondition[i].m_twoExclude);
     }
 
+    ui->beginDateEdit->setDate(QDate::currentDate().addYears(-1));
     ui->endDateEdit->setDate(QDate::currentDate());
 
     connect(ui->loadDataButton, &QPushButton::clicked, this, &MainWindow::onLoadDataButtonClicked);
