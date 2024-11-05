@@ -500,7 +500,7 @@ bool DataFilter::checkIfStockDataOk(StockData stockData, const FilterCondition& 
         stockData.m_data[1].replace(QString::fromWCharArray(L"存"), "");
     }
 
-    // 检查一宫不含
+    // 检查一宫不含，每个字都要满足
     for (int i=0; i<filterCondition.m_oneExclude.length(); i++)
     {
         QString word = filterCondition.m_oneExclude[i];
@@ -520,7 +520,7 @@ bool DataFilter::checkIfStockDataOk(StockData stockData, const FilterCondition& 
         }
     }
 
-    // 检查二宫不含
+    // 检查二宫不含，每个字都要满足
     for (int i=0; i<filterCondition.m_twoExclude.length(); i++)
     {
         QString word = filterCondition.m_twoExclude[i];
@@ -540,56 +540,58 @@ bool DataFilter::checkIfStockDataOk(StockData stockData, const FilterCondition& 
         }
     }
 
-    // 检查一宫含
+    // 检查一宫含，只要一个满足
+    bool ok = false;
     for (int i=0; i<filterCondition.m_oneInclude.length(); i++)
     {
         QString word = filterCondition.m_oneInclude[i];
         if (word == QString::fromWCharArray(L"存"))
         {
-            if (!hasCunWord(stockData.m_data[0], stockData.m_data[0], stockData.m_data[1]))
+            if (hasCunWord(stockData.m_data[0], stockData.m_data[0], stockData.m_data[1]))
             {
-                return false;
+                ok = true;
+                break;
             }
         }
         else
         {
-            if (stockData.m_data[0].indexOf(word) < 0)
+            if (stockData.m_data[0].indexOf(word) >= 0 && haveWordWithoutKuohao(word, stockData.m_data))
             {
-                return false;
-            }
-
-            // 如果只是有前后括号，返回false
-            if (!haveWordWithoutKuohao(word, stockData.m_data))
-            {
-                return false;
+                ok = true;
+                break;
             }
         }
     }
+    if (filterCondition.m_oneInclude.length() > 0 && !ok)
+    {
+        return false;
+    }
 
-    // 检查二宫含
+    // 检查二宫含，只要一个满足
+    ok = false;
     for (int i=0; i<filterCondition.m_twoInclude.length(); i++)
     {
         QString word = filterCondition.m_twoInclude[i];
         if (word == QString::fromWCharArray(L"存"))
         {
-            if (!hasCunWord(stockData.m_data[1], stockData.m_data[0], stockData.m_data[1]))
+            if (hasCunWord(stockData.m_data[1], stockData.m_data[0], stockData.m_data[1]))
             {
-                return false;
+                ok = true;
+                break;
             }
         }
         else
         {
-            if (stockData.m_data[1].indexOf(word) < 0)
+            if (stockData.m_data[1].indexOf(word) >= 0 && haveWordWithoutKuohao(word, stockData.m_data))
             {
-                return false;
-            }
-
-            // 如果只是有前后括号，返回false
-            if (!haveWordWithoutKuohao(word, stockData.m_data))
-            {
-                return false;
+                ok = true;
+                break;
             }
         }
+    }
+    if (filterCondition.m_twoInclude.length() > 0 && !ok)
+    {
+        return false;
     }
 
     return true;

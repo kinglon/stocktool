@@ -44,14 +44,6 @@ void logToFile(QtMsgType type, const QMessageLogContext &context, const QString 
 
 int main(int argc, char *argv[])
 {
-    // 单实例
-    const wchar_t* mutexName = L"{73D33E4A-D003A-920A-8523-158D74420098}";
-    HANDLE mutexHandle = CreateMutexW(nullptr, TRUE, mutexName);
-    if (mutexHandle == nullptr || GetLastError() == ERROR_ALREADY_EXISTS)
-    {
-        return 0;
-    }
-
     g_dllLog = CLogUtil::GetLog(L"main");
 
     // 初始化崩溃转储机制
