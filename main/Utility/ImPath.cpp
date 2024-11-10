@@ -47,7 +47,7 @@ std::wstring CImPath::GetSoftInstallPath()
 
     wchar_t szModulePath[MAX_PATH] = { 0 };
     GetModuleFileName(NULL, szModulePath, MAX_PATH);
-    for (int i = wcslen(szModulePath); i >= 0; --i)
+    for (size_t i = wcslen(szModulePath); i >= 0; --i)
     {
         if (szModulePath[i] == '\\')
         {

@@ -15,11 +15,16 @@ DataFilter::DataFilter(QObject *parent)
 
 void DataFilter::run()
 {
+    int lastMonth = -1;
     for (QDate date=m_beginDate; date < m_endDate; date = date.addDays(1))
     {
         if (m_onlyFilterToMonth)
         {
-            filterOnlyToMonth(date);
+            if (date.month() != lastMonth)
+            {
+                lastMonth = date.month();
+                filterOnlyToMonth(date);
+            }
         }
         else
         {
@@ -38,7 +43,7 @@ void DataFilter::filterOnlyToMonth(QDate date)
     if (!SettingManager::getInstance()->m_filterCondition[YEAR_FILTER_CONDTION].isEnable())
     {
         // 没设置筛选条件，取全部
-        yearStockDatas = DataManager::getInstance()->m_stockDatas[YEAR_FILTER_CONDTION];
+        yearStockDatas = DataManager::getInstance()->m_stockDatas[STOCK_DATA_YEAR];
     }
     else
     {
@@ -70,7 +75,7 @@ void DataFilter::filterNotOnlyToMonth(QDate date)
     if (!SettingManager::getInstance()->m_filterCondition[YEAR_FILTER_CONDTION].isEnable())
     {
         // 没设置筛选条件，取全部
-        yearStockDatas = DataManager::getInstance()->m_stockDatas[YEAR_FILTER_CONDTION];
+        yearStockDatas = DataManager::getInstance()->m_stockDatas[STOCK_DATA_YEAR];
     }
     else
     {
@@ -268,7 +273,7 @@ void DataFilter::filterMonthData(QDate date, bool useLunarTime, const QVector<St
 
     // 开始筛选
     FilterCondition monthFilterCondition = SettingManager::getInstance()->m_filterCondition[MONTH_FILTER_CONDTION];
-    QString month = date.toString("yyyy年M月");
+    QString month = date.toString(QString::fromWCharArray(L"yyyy年M月"));
     QDateTime filterDateTime;
     filterDateTime.setDate(QDate(date.year(), date.month(), 1));
     qint64 filterTime = filterDateTime.toSecsSinceEpoch();
@@ -746,36 +751,17 @@ void FilterDataController::saveStockData()
 {
     emit printLog(QString::fromWCharArray(L"开始保存数据"));
 
+    // 按公历开始时间，股票名称排序
+    std::sort(m_stockDatas.begin(), m_stockDatas.end(), [](const StockData& a, const StockData& b) {
+        return a.m_beginTime < b.m_beginTime || (a.m_beginTime == b.m_beginTime && a.m_stockName < b.m_stockName);
+    });
+
     QString result;
     if (m_onlyFilterToMonth)
     {
-        // 按农历排序
-        std::sort(m_stockDatas.begin(), m_stockDatas.end(), [](const StockData& a, const StockData& b) {
-            QDateTime aDateTime;
-            if (a.m_lunarTime.indexOf(QString::fromWCharArray(L"年")) > 0)
-            {
-                aDateTime = QDateTime::fromString(a.m_lunarTime, "yyyy年M月");
-            }
-            else
-            {
-                aDateTime = QDateTime::fromString(a.m_lunarTime, "yyyy");
-            }
-
-            QDateTime bDateTime;
-            if (b.m_lunarTime.indexOf(QString::fromWCharArray(L"年")) > 0)
-            {
-                bDateTime = QDateTime::fromString(b.m_lunarTime, "yyyy年M月");
-            }
-            else
-            {
-                bDateTime = QDateTime::fromString(b.m_lunarTime, "yyyy");
-            }
-
-            return aDateTime < bDateTime;
-        });
-
         // 每行: 时间 股票1 股票2
         QString lunarTime;
+        QString stockName;
         for (const auto& stockData : m_stockDatas)
         {
             if (!result.isEmpty() && stockData.m_lunarTime != lunarTime)
@@ -786,17 +772,18 @@ void FilterDataController::saveStockData()
             {
                 result += stockData.m_lunarTime + " ";
                 lunarTime = stockData.m_lunarTime;
+                stockName = "";
             }
-            result += stockData.m_stockName + " ";
+            if (stockData.m_stockName != stockName)
+            {
+                // 会有重复的股票，要去重
+                result += stockData.m_stockName + " ";
+                stockName = stockData.m_stockName;
+            }
         }
     }
     else
     {
-        // 按公历开始时间，股票名称排序
-        std::sort(m_stockDatas.begin(), m_stockDatas.end(), [](const StockData& a, const StockData& b) {
-            return a.m_beginTime < b.m_beginTime || (a.m_beginTime == b.m_beginTime && a.m_stockName < b.m_stockName);
-        });
-
         // 每行: 时间 股票1 股票2
         qint64 beginTime = 0;
         QString stockName;

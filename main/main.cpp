@@ -47,8 +47,8 @@ int main(int argc, char *argv[])
     g_dllLog = CLogUtil::GetLog(L"main");
 
     // 初始化崩溃转储机制
-    CDumpUtil::SetDumpFilePath(CImPath::GetDumpPath().c_str());
-    CDumpUtil::Enable(true);
+//    CDumpUtil::SetDumpFilePath(CImPath::GetDumpPath().c_str());
+//    CDumpUtil::Enable(true);
 
     // 设置日志级别
     int nLogLevel = SettingManager::getInstance()->m_nLogLevel;
