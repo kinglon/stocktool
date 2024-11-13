@@ -753,59 +753,96 @@ void FilterDataController::saveStockData()
 
     // 按公历开始时间，股票名称排序
     std::sort(m_stockDatas.begin(), m_stockDatas.end(), [](const StockData& a, const StockData& b) {
-        return a.m_beginTime < b.m_beginTime || (a.m_beginTime == b.m_beginTime && a.m_stockName < b.m_stockName);
+        return a.m_beginTime < b.m_beginTime
+                || (a.m_beginTime == b.m_beginTime && a.m_industryName < b.m_industryName)
+                || (a.m_beginTime == b.m_beginTime && a.m_industryName == b.m_industryName && a.m_stockName < b.m_stockName);
     });
 
     QString result;
-    if (m_onlyFilterToMonth)
+    QString lunarTime;
+    qint64 beginTime = 0;
+    QString industryName;
+    QString stockName;
+    bool hasIndustry = false;
+    if (m_stockDatas.size() > 0 && !m_stockDatas[0].m_industryName.isEmpty())
     {
-        // 每行: 时间 股票1 股票2
-        QString lunarTime;
-        QString stockName;
-        for (const auto& stockData : m_stockDatas)
+        hasIndustry = true;
+    }
+    for (const auto& stockData : m_stockDatas)
+    {
+        if (m_onlyFilterToMonth)
         {
+            // 只过滤到月，用农历时间
             if (!result.isEmpty() && stockData.m_lunarTime != lunarTime)
             {
-                result.append("\r\n");
+                if (hasIndustry)
+                {
+                    result.append("\r\n\r\n");
+                }
+                else
+                {
+                    result.append("\r\n");
+                }
             }
             if (stockData.m_lunarTime != lunarTime)
             {
                 result += stockData.m_lunarTime + " ";
                 lunarTime = stockData.m_lunarTime;
+                industryName = "";
                 stockName = "";
             }
-            if (stockData.m_stockName != stockName)
-            {
-                // 会有重复的股票，要去重
-                result += stockData.m_stockName + " ";
-                stockName = stockData.m_stockName;
-            }
         }
-    }
-    else
-    {
-        // 每行: 时间 股票1 股票2
-        qint64 beginTime = 0;
-        QString stockName;
-        for (const auto& stockData : m_stockDatas)
+        else
         {
+            // 不只过滤到月，用公历时间
             if (!result.isEmpty() && stockData.m_beginTime != beginTime)
             {
-                result.append("\r\n");
+                if (hasIndustry)
+                {
+                    result.append("\r\n\r\n");
+                }
+                else
+                {
+                    result.append("\r\n");
+                }
             }
             if (stockData.m_beginTime != beginTime)
             {
                 QString dateTimeStr = QDateTime::fromSecsSinceEpoch(stockData.m_beginTime).toString(QString::fromWCharArray(L"yyyy年M月d日"));
                 result += dateTimeStr + " ";
                 beginTime = stockData.m_beginTime;
+                industryName = "";
                 stockName = "";
             }
-            if (stockData.m_stockName != stockName)
+        }
+
+        if (hasIndustry)
+        {
+            if (stockData.m_industryName != industryName)
             {
-                // 时会有重复的股票，要去重
-                result += stockData.m_stockName + " ";
-                stockName = stockData.m_stockName;
+                if (!industryName.isEmpty())
+                {
+                    result += "\r\n                ";
+                }
+                stockName = "";
+                industryName = stockData.m_industryName;
+                result += industryName + "\r\n";
+                if (m_onlyFilterToMonth)
+                {
+                    result += "           ";
+                }
+                else
+                {
+                    result += "               ";
+                }
             }
+        }
+
+        if (stockData.m_stockName != stockName)
+        {
+            // 时会有重复的股票，要去重
+            result += stockData.m_stockName + " ";
+            stockName = stockData.m_stockName;
         }
     }
 

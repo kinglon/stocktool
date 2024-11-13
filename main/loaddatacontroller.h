@@ -13,16 +13,20 @@ public:
     explicit StockFileScanner(QObject *parent = nullptr);
 
 public:
-    void run();
-
-    QVector<QString>& getStockFiles() { return m_stockFiles; }
+    void run();    
 
 signals:
     void runFinish();
 
-private:
-    // 完整路径
+public:
+    // 扫描根目录
+    QString m_rootDir;
+
+    // 扫描的股票文件完整路径
     QVector<QString> m_stockFiles;
+
+    // 行业名称，与m_stockFiles一一对应
+    QVector<QString> m_industryNames;
 };
 
 class StockFileLoader: public QObject
@@ -43,10 +47,12 @@ signals:
 private:
     bool getStockNameAndType(const QString& fileName, QString& stockName, int& type);
 
-    void processOneLine(const QString& stockName, int dataType, const QString& line);
+    void processOneLine(const QString& industryName, const QString& stockName, int dataType, const QString& line);
 
 public:
     QVector<QString> m_stockFiles;
+
+    QVector<QString> m_industryNames;
 
     QVector<StockData> m_stockDatas[MAX_STOCK_DATA_COUNT];
 
@@ -60,7 +66,7 @@ public:
     explicit LoadDataController(QObject *parent = nullptr);
 
 public:
-    void run();
+    void run(QString rootDir);
 
 signals:
     void printLog(QString content);    

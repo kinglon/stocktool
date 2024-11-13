@@ -2,6 +2,7 @@
 #include "ui_mainwindow.h"
 #include "uiutil.h"
 #include <QDateTime>
+#include <QFileDialog>
 #include "Utility/LogUtil.h"
 #include "loaddatacontroller.h"
 #include "filterdatacontroller.h"
@@ -86,6 +87,13 @@ void MainWindow::onLoadDataButtonClicked()
         }
     }
 
+    QString rootDir = QFileDialog::getExistingDirectory(this, QString::fromWCharArray(L"选择股票数据根目录"),
+                                                      QDir::homePath());
+    if (rootDir.isEmpty())
+    {
+        return;
+    }
+
     LoadDataController* controller = new LoadDataController(this);
     connect(controller, &LoadDataController::printLog, this, &MainWindow::onPrintLog);
     connect(controller, &LoadDataController::runFinish, [this, controller]() {
@@ -95,7 +103,7 @@ void MainWindow::onLoadDataButtonClicked()
     });
     ui->loadDataButton->setEnabled(false);
     ui->filterDataButton->setEnabled(false);
-    controller->run();
+    controller->run(rootDir);
 }
 
 void MainWindow::onFilterDataButtonClicked()

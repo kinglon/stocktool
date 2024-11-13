@@ -40,6 +40,9 @@ public:
 class StockData
 {
 public:
+    // 行业
+    QString m_industryName;
+
     // 股票名称
     QString m_stockName;
 

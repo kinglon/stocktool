@@ -17,10 +17,8 @@ StockFileScanner::StockFileScanner(QObject *parent)
 }
 
 void StockFileScanner::run()
-{
-    QString dataPath = QString::fromStdWString(CImPath::GetDataPath());
-    QString stockPath = dataPath + QString::fromWCharArray(L"股票\\");
-    QDir dir(stockPath);
+{    
+    QDir dir(m_rootDir);
     QDir::Filters filters = QDir::Dirs | QDir::NoDotAndDotDot;
     QFileInfoList fileInfoList = dir.entryInfoList(filters);
     QStringList suffixes;
@@ -30,12 +28,34 @@ void StockFileScanner::run()
     suffixes.append(QString::fromWCharArray(L"时.csv"));
     foreach (const QFileInfo &fileInfo, fileInfoList)
     {
+        bool found = false;
         foreach(const QString& suffix, suffixes)
         {
             QString filePath = fileInfo.absoluteFilePath() + "\\" + fileInfo.fileName() + suffix;
             if (QFile(filePath).exists())
             {
+                found = true;
                 m_stockFiles.append(filePath);
+                m_industryNames.append("");
+            }
+        }
+
+        // 行业下加载
+        if (!found)
+        {
+            QDir subDir(fileInfo.absoluteFilePath());
+            QFileInfoList subFileInfoList = subDir.entryInfoList(filters);
+            foreach (const QFileInfo &subFileInfo, subFileInfoList)
+            {
+                foreach(const QString& suffix, suffixes)
+                {
+                    QString filePath = subFileInfo.absoluteFilePath() + "\\" + subFileInfo.fileName() + suffix;
+                    if (QFile(filePath).exists())
+                    {
+                        m_stockFiles.append(filePath);
+                        m_industryNames.append(fileInfo.fileName());
+                    }
+                }
             }
         }
     }
@@ -50,8 +70,10 @@ StockFileLoader::StockFileLoader(QObject *parent)
 
 void StockFileLoader::run()
 {
-    foreach(const QString& stockFile, m_stockFiles)
+    for(int i=0; i<m_stockFiles.size(); i++)
     {
+        const QString& stockFile = m_stockFiles[i];
+        const QString& industryName = m_industryNames[i];
         QFileInfo fileInfo(stockFile);
         QString fileName = fileInfo.fileName();
         QString stockName;
@@ -71,7 +93,7 @@ void StockFileLoader::run()
         while (!in.atEnd())
         {
             QString line = in.readLine();
-            processOneLine(stockName, dataType, line);
+            processOneLine(industryName, stockName, dataType, line);
         }
         file.close();
     }
@@ -113,7 +135,7 @@ bool StockFileLoader::getStockNameAndType(const QString& fileName, QString& stoc
     return true;
 }
 
-void StockFileLoader::processOneLine(const QString& stockName, int dataType, const QString& line)
+void StockFileLoader::processOneLine(const QString& industryName, const QString& stockName, int dataType, const QString& line)
 {
     if (line.isEmpty())
     {
@@ -144,6 +166,7 @@ void StockFileLoader::processOneLine(const QString& stockName, int dataType, con
     }
 
     StockData stockData;
+    stockData.m_industryName = industryName;
     stockData.m_stockName = stockName;
     if (dataType == STOCK_DATA_YEAR || dataType == STOCK_DATA_MONTH)
     {
@@ -241,12 +264,13 @@ LoadDataController::LoadDataController(QObject *parent)
 
 }
 
-void LoadDataController::run()
+void LoadDataController::run(QString rootDir)
 {
     emit printLog(QString::fromWCharArray(L"开始加载数据"));
 
     emit printLog(QString::fromWCharArray(L"开始扫描数据文件"));
     m_stockFileScanner = new StockFileScanner();
+    m_stockFileScanner->m_rootDir = rootDir;
     m_stockFileScanThread = new QThread();
     m_stockFileScanner->moveToThread(m_stockFileScanThread);
     connect(m_stockFileScanThread, &QThread::started, m_stockFileScanner, &StockFileScanner::run);
@@ -257,7 +281,8 @@ void LoadDataController::run()
 
 void LoadDataController::onStockFileScannerFinish()
 {
-    QVector<QString> stockFiles = m_stockFileScanner->getStockFiles();
+    QVector<QString> stockFiles = m_stockFileScanner->m_stockFiles;
+    QVector<QString> industryNames = m_stockFileScanner->m_industryNames;
 
     m_stockFileScanner->deleteLater();
     m_stockFileScanner = nullptr;
@@ -294,6 +319,7 @@ void LoadDataController::onStockFileScannerFinish()
         for (int j = begin; j < end; j++)
         {
             loader->m_stockFiles.append(stockFiles[j]);
+            loader->m_industryNames.append(industryNames[j]);
         }
 
         QThread* thread = new QThread();
