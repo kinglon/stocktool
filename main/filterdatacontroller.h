@@ -15,6 +15,9 @@ public:
 public:
     void run();
 
+    // 查找公历开始时间小于beginTime附近的索引
+    static int findIndex(const QVector<StockData>& stockDatas, qint64 beginSearchTime);
+
 signals:
     void oneDayFinish();
 
@@ -42,10 +45,7 @@ private:
     bool hasCunWord(QString data, QString data1, QString data2);
 
     // 检查4个宫格是否有不带括号的字
-    bool haveWordWithoutKuohao(QString word, QString data[4]);
-
-    // 查找公历开始时间小于beginTime附近的索引
-    int findIndex(const QVector<StockData>& stockDatas, qint64 beginSearchTime);
+    bool haveWordWithoutKuohao(QString word, QString data[4]);    
 
 public:
     bool m_onlyFilterToMonth = true;
@@ -78,6 +78,18 @@ private slots:
 
 private:
     void saveStockData();
+
+    void saveStockDataDetail();
+
+    void appendSpaceChar(QString& result, int count);
+
+    StockData findYearStockDataByMonth(const StockData& monthStockData);
+
+    StockData findMonthStockDataByDay(const StockData& dayStockData);
+
+    StockData findLastDayStockDataByDay(const StockData& dayStockData);
+
+    void appendDayStockData(int prefixSpaceCount, QString& result, const StockData& stockData);
 
 private:
     bool m_onlyFilterToMonth = false;

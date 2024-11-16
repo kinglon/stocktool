@@ -7,6 +7,9 @@
 #include "settingmanager.h"
 #include "datamanager.h"
 
+#define PREFIX_SPACE_COUNT  12
+#define MIDDLE_SPACE_COUNT  4
+
 DataFilter::DataFilter(QObject *parent)
     : QObject{parent}
 {
@@ -742,6 +745,8 @@ void FilterDataController::onFilterRunFinish(DataFilter* dataFilter)
         if (!m_stockDatas.isEmpty())
         {
             saveStockData();
+            saveStockDataDetail();
+            QDesktopServices::openUrl(QUrl::fromLocalFile(QString::fromStdWString(CImPath::GetDataPath())));
         }
         emit runFinish();
     }
@@ -794,6 +799,13 @@ void FilterDataController::saveStockData()
         }
         else
         {
+            // 周末不输出
+            int dayOfWeek = QDateTime::fromSecsSinceEpoch(stockData.m_beginTime).date().dayOfWeek();
+            if (dayOfWeek == 6 || dayOfWeek == 7)
+            {
+                continue;
+            }
+
             // 不只过滤到月，用公历时间
             if (!result.isEmpty() && stockData.m_beginTime != beginTime)
             {
@@ -804,8 +816,25 @@ void FilterDataController::saveStockData()
                 else
                 {
                     result.append("\r\n");
+
+                    // 跨周末加空行
+                    static int sevenDay = 7*24*3600;
+                    if (stockData.m_beginTime - beginTime >= sevenDay)
+                    {
+                        result.append("\r\n");
+                    }
+                    else
+                    {
+                        QDateTime now = QDateTime::fromSecsSinceEpoch(stockData.m_beginTime);
+                        QDateTime last = QDateTime::fromSecsSinceEpoch(beginTime);
+                        if (now.date().dayOfWeek() < last.date().dayOfWeek())
+                        {
+                            result.append("\r\n");
+                        }
+                    }
                 }
             }
+
             if (stockData.m_beginTime != beginTime)
             {
                 QString dateTimeStr = QDateTime::fromSecsSinceEpoch(stockData.m_beginTime).toString(QString::fromWCharArray(L"yyyy年M月d日"));
@@ -851,8 +880,7 @@ void FilterDataController::saveStockData()
     if (resultFile.open(QFile::WriteOnly))
     {
         resultFile.write(result.toUtf8());
-        resultFile.close();
-        QDesktopServices::openUrl(QUrl::fromLocalFile(QString::fromStdWString(CImPath::GetDataPath())));
+        resultFile.close();        
     }
     else
     {
@@ -860,4 +888,339 @@ void FilterDataController::saveStockData()
     }    
 
     emit printLog(QString::fromWCharArray(L"保存数据完成"));    
+}
+
+void FilterDataController::saveStockDataDetail()
+{
+    emit printLog(QString::fromWCharArray(L"开始保存明细数据"));
+
+    // 按公历开始时间，股票名称排序
+    std::sort(m_stockDatas.begin(), m_stockDatas.end(), [](const StockData& a, const StockData& b) {
+        return a.m_beginTime < b.m_beginTime
+                || (a.m_beginTime == b.m_beginTime && a.m_industryName < b.m_industryName)
+                || (a.m_beginTime == b.m_beginTime && a.m_industryName == b.m_industryName && a.m_stockName < b.m_stockName);
+    });
+
+    QString result;
+    QString lunarTime;
+    qint64 beginTime = 0;
+    QString industryName;
+    QString stockName;
+    bool hasIndustry = false;
+    if (m_stockDatas.size() > 0 && !m_stockDatas[0].m_industryName.isEmpty())
+    {
+        hasIndustry = true;
+    }
+    for (const auto& stockData : m_stockDatas)
+    {
+        if (m_onlyFilterToMonth)
+        {
+            // 输出时间，只过滤到月，用农历时间
+            if (stockData.m_lunarTime != lunarTime)
+            {
+                result += stockData.m_lunarTime + "\r\n";
+                lunarTime = stockData.m_lunarTime;
+                industryName = "";
+                stockName = "";
+            }
+
+            int prefixSpaceCount = PREFIX_SPACE_COUNT;
+
+            // 输出行业信息
+            if (hasIndustry && stockData.m_industryName != industryName)
+            {
+                appendSpaceChar(result, prefixSpaceCount);
+                result += stockData.m_industryName + "\r\n";
+                industryName = stockData.m_industryName;
+                stockName = "";
+            }
+
+            if (hasIndustry)
+            {
+                prefixSpaceCount += PREFIX_SPACE_COUNT;
+            }
+
+            if (stockData.m_stockName != stockName)
+            {
+                // 输出：股票名称，年，4宫内容
+                stockName = stockData.m_stockName;
+                appendSpaceChar(result, prefixSpaceCount);
+                StockData yearStockData = stockData;
+                if (stockData.m_lunarTime.indexOf(QString::fromWCharArray(L"月")) > 0)
+                {
+                    yearStockData = findYearStockDataByMonth(stockData);
+                }
+                result += yearStockData.m_stockName;
+                appendSpaceChar(result, MIDDLE_SPACE_COUNT);
+                result += yearStockData.m_lunarTime;
+                for (int fieldIndex=0; fieldIndex < DATA_FIELD_LENGTH; fieldIndex++)
+                {
+                    appendSpaceChar(result, MIDDLE_SPACE_COUNT);
+                    result += yearStockData.m_data[fieldIndex];
+                }
+                result += "\r\n";
+
+                // 输出：月，4宫内容
+                prefixSpaceCount += PREFIX_SPACE_COUNT;
+                if (stockData.m_lunarTime.indexOf(QString::fromWCharArray(L"月")) > 0)
+                {
+                    appendSpaceChar(result, prefixSpaceCount);
+                    result += stockData.m_lunarTime;
+                    for (int fieldIndex=0; fieldIndex < DATA_FIELD_LENGTH; fieldIndex++)
+                    {
+                        appendSpaceChar(result, MIDDLE_SPACE_COUNT);
+                        result += stockData.m_data[fieldIndex];
+                    }
+                    result += "\r\n";
+                }
+            }
+        }
+        else
+        {
+            // 输出时间：不只过滤到月，用公历时间
+            if (stockData.m_beginTime != beginTime)
+            {
+                QString dateTimeStr = QDateTime::fromSecsSinceEpoch(stockData.m_beginTime).toString(QString::fromWCharArray(L"yyyy年M月d日"));
+                result += dateTimeStr + "\r\n";
+                beginTime = stockData.m_beginTime;
+                industryName = "";
+                stockName = "";
+            }
+
+            int prefixSpaceCount = PREFIX_SPACE_COUNT;
+
+            // 输出行业信息
+            if (hasIndustry && stockData.m_industryName != industryName)
+            {
+                appendSpaceChar(result, prefixSpaceCount);
+                result += stockData.m_industryName + "\r\n";
+                industryName = stockData.m_industryName;
+                stockName = "";
+            }
+
+            if (hasIndustry)
+            {
+                prefixSpaceCount += PREFIX_SPACE_COUNT;
+            }
+
+            if (stockData.m_stockName != stockName)
+            {
+                // 输出：股票名称，月，4宫内容
+                stockName = stockData.m_stockName;
+                appendSpaceChar(result, prefixSpaceCount);
+                StockData monthStockData = findMonthStockDataByDay(stockData);
+                result += monthStockData.m_stockName;
+                appendSpaceChar(result, MIDDLE_SPACE_COUNT);
+                result += monthStockData.m_lunarTime;
+                for (int fieldIndex=0; fieldIndex < DATA_FIELD_LENGTH; fieldIndex++)
+                {
+                    appendSpaceChar(result, MIDDLE_SPACE_COUNT);
+                    result += monthStockData.m_data[fieldIndex];
+                }
+                result += "\r\n";
+
+                prefixSpaceCount += PREFIX_SPACE_COUNT;
+
+                // 输出：上一日和时，4宫内容
+                StockData lastStockData = findLastDayStockDataByDay(stockData);
+                if (!lastStockData.m_stockName.isEmpty())
+                {
+                    appendDayStockData(prefixSpaceCount, result, lastStockData);
+                }
+
+                // 输出：当日和时，4宫内容
+                appendDayStockData(prefixSpaceCount, result, stockData);
+            }
+        }
+    }
+
+    QString resultFilePath = QString::fromStdWString(CImPath::GetDataPath()) + QString::fromWCharArray(L"明细.txt");
+    QFile resultFile(resultFilePath);
+    if (resultFile.open(QFile::WriteOnly))
+    {
+        resultFile.write(result.toUtf8());
+        resultFile.close();
+    }
+    else
+    {
+        qCritical("failed to open the result detail file");
+    }
+
+    emit printLog(QString::fromWCharArray(L"保存明细数据完成"));
+}
+
+void FilterDataController::appendSpaceChar(QString& result, int count)
+{
+    for (int i=0; i<count; i++)
+    {
+        result.append(' ');
+    }
+}
+
+StockData FilterDataController::findYearStockDataByMonth(const StockData& monthStockData)
+{
+    // 从前1年开始(考虑到农历公历时间差)，找到开始筛选的数据点
+    QDateTime monthBeginDateTime = QDateTime::fromSecsSinceEpoch(monthStockData.m_beginTime);
+    QDateTime beginSearchDateTime = monthBeginDateTime.addYears(-1);
+    qint64 beginSearchTime = beginSearchDateTime.toSecsSinceEpoch();
+
+    const QVector<StockData>& stockDatas = DataManager::getInstance()->m_stockDatas[STOCK_DATA_YEAR];
+    int left = DataFilter::findIndex(stockDatas, beginSearchTime);
+
+    // 开始筛选
+    while (left < stockDatas.length())
+    {
+        const StockData& currentStockData = stockDatas[left];
+        if (currentStockData.m_stockName == monthStockData.m_stockName
+                && monthStockData.m_lunarTime.indexOf(currentStockData.m_lunarTime) == 0)
+        {
+            return currentStockData;
+        }
+
+        QDateTime beginDateTime = QDateTime::fromSecsSinceEpoch(currentStockData.m_beginTime);
+        if (beginDateTime.date().year() - monthBeginDateTime.date().year() >= 2)
+        {
+            break;
+        }
+
+        left++;
+    }
+
+    qCritical("failed to find the year stock data of %s %s",
+              monthStockData.m_lunarTime.toStdString().c_str(),
+              monthStockData.m_stockName.toStdString().c_str());
+    return StockData();
+}
+
+StockData FilterDataController::findMonthStockDataByDay(const StockData& dayStockData)
+{
+    // 从前3个月开始(考虑到农历公历时间差)，找到开始筛选的数据点
+    QDate date = QDateTime::fromSecsSinceEpoch(dayStockData.m_beginTime).date();
+    QDateTime beginSearchDateTime;
+    QDate tempDate = date.addMonths(-3);
+    beginSearchDateTime.setDate(QDate(tempDate.year(), tempDate.month(), 1));
+    qint64 beginSearchTime = beginSearchDateTime.toSecsSinceEpoch();
+
+    const QVector<StockData>& stockDatas = DataManager::getInstance()->m_stockDatas[STOCK_DATA_MONTH];
+    int left = DataFilter::findIndex(stockDatas, beginSearchTime);
+    while (left < stockDatas.length())
+    {
+        const StockData& currentStockData = stockDatas[left];
+        if (dayStockData.m_beginTime >= currentStockData.m_beginTime
+                && dayStockData.m_beginTime <= currentStockData.m_endTime
+                && currentStockData.m_stockName == dayStockData.m_stockName)
+        {
+            return currentStockData;
+        }
+
+        if (currentStockData.m_beginTime > dayStockData.m_beginTime)
+        {
+            break;
+        }
+
+        left++;
+    }
+
+    qCritical("failed to find the month stock data of %s %d-%d",
+              dayStockData.m_stockName.toStdString().c_str(),
+              date.year(), date.month());
+    return StockData();
+}
+
+StockData FilterDataController::findLastDayStockDataByDay(const StockData& dayStockData)
+{
+    QDate date = QDateTime::fromSecsSinceEpoch(dayStockData.m_beginTime).date();
+    QDateTime beginSearchDateTime;
+    beginSearchDateTime.setDate(date.addDays(-1));
+    qint64 beginSearchTime = beginSearchDateTime.toSecsSinceEpoch();
+
+    const QVector<StockData>& stockDatas = DataManager::getInstance()->m_stockDatas[STOCK_DATA_DAY];
+    int left = DataFilter::findIndex(stockDatas, beginSearchTime);
+    qint64 filterTime = beginSearchTime;
+    while (left < stockDatas.length())
+    {
+        const StockData& currentStockData = stockDatas[left];
+        if (currentStockData.m_beginTime == filterTime
+                && currentStockData.m_stockName == dayStockData.m_stockName)
+        {
+            return currentStockData;
+        }
+
+        if (currentStockData.m_beginTime > filterTime)
+        {
+            break;
+        }
+
+        left++;
+    }
+
+    return StockData();
+}
+
+void FilterDataController::appendDayStockData(int prefixSpaceCount, QString& result, const StockData& stockData)
+{
+    // 输出日的数据
+    qint64 beginSearchTime = stockData.m_beginTime;
+    const QVector<StockData>& stockDatas = DataManager::getInstance()->m_stockDatas[STOCK_DATA_DAY];
+    int left = DataFilter::findIndex(stockDatas, beginSearchTime);
+    qint64 filterTime = beginSearchTime;
+    while (left < stockDatas.length())
+    {
+        const StockData& currentStockData = stockDatas[left];
+        if (currentStockData.m_beginTime == filterTime
+                && currentStockData.m_stockName == stockData.m_stockName)
+        {
+            appendSpaceChar(result, prefixSpaceCount);
+            QString dateTimeStr = QDateTime::fromSecsSinceEpoch(currentStockData.m_beginTime).toString(QString::fromWCharArray(L"yyyy年M月d日"));
+            result += dateTimeStr;
+            for (int i=0; i<DATA_FIELD_LENGTH; i++)
+            {
+                appendSpaceChar(result, MIDDLE_SPACE_COUNT);
+                result += currentStockData.m_data[i];
+            }
+            result += "\r\n";
+            break;
+        }
+
+        if (currentStockData.m_beginTime > filterTime)
+        {
+            break;
+        }
+
+        left++;
+    }
+
+    prefixSpaceCount += PREFIX_SPACE_COUNT;
+
+    // 输出已午未的数据
+    for (int i=STOCK_DATA_HOUR_YI; i<=STOCK_DATA_HOUR_WEI; i++)
+    {
+        const QVector<StockData>& stockDatas = DataManager::getInstance()->m_stockDatas[i];
+        left = DataFilter::findIndex(stockDatas, beginSearchTime);
+        qint64 filterTime = beginSearchTime;
+        while (left < stockDatas.length())
+        {
+            const StockData& currentStockData = stockDatas[left];
+            if (currentStockData.m_beginTime == filterTime
+                    && currentStockData.m_stockName == stockData.m_stockName)
+            {
+                appendSpaceChar(result, prefixSpaceCount);
+                result += currentStockData.m_hour;
+                for (int i=0; i<DATA_FIELD_LENGTH; i++)
+                {
+                    appendSpaceChar(result, MIDDLE_SPACE_COUNT);
+                    result += currentStockData.m_data[i];
+                }
+                result += "\r\n";
+                break;
+            }
+
+            if (currentStockData.m_beginTime > filterTime)
+            {
+                break;
+            }
+
+            left++;
+        }
+    }
 }
