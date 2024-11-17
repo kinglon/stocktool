@@ -38,6 +38,8 @@ public:
 public:
     void run();
 
+    static bool parseOneLine(const QString& industryName, const QString& stockName, int dataType, const QString& line, StockData& stockData);
+
 signals:
     // 每10万条数据报告一次
     void reportProgress(int count);

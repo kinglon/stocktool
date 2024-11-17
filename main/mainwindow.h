@@ -27,11 +27,16 @@ private slots:
 
     void onFilterDataButtonClicked();
 
+    void onMergeDataButtonClicked();
+
 protected:
     void closeEvent(QCloseEvent *event) override;
 
 private:
-    void initCtrls();    
+    void initCtrls();
+
+    // 控制是否允许操作按钮
+    void enableOperate(bool enable);
 
 private:
     Ui::MainWindow *ui;

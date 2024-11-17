@@ -6,6 +6,7 @@
 #include "Utility/LogUtil.h"
 #include "loaddatacontroller.h"
 #include "filterdatacontroller.h"
+#include "mergedatacontroller.h"
 #include "datamanager.h"
 
 MainWindow::MainWindow(QWidget *parent)
@@ -48,6 +49,14 @@ void MainWindow::initCtrls()
 
     connect(ui->loadDataButton, &QPushButton::clicked, this, &MainWindow::onLoadDataButtonClicked);
     connect(ui->filterDataButton, &QPushButton::clicked, this, &MainWindow::onFilterDataButtonClicked);
+    connect(ui->mergeDataButton, &QPushButton::clicked, this, &MainWindow::onMergeDataButtonClicked);
+}
+
+void MainWindow::enableOperate(bool enable)
+{
+    ui->loadDataButton->setEnabled(enable);
+    ui->filterDataButton->setEnabled(enable);
+    ui->mergeDataButton->setEnabled(enable);
 }
 
 void MainWindow::closeEvent(QCloseEvent *event)
@@ -98,11 +107,9 @@ void MainWindow::onLoadDataButtonClicked()
     connect(controller, &LoadDataController::printLog, this, &MainWindow::onPrintLog);
     connect(controller, &LoadDataController::runFinish, [this, controller]() {
         controller->deleteLater();
-        ui->loadDataButton->setEnabled(true);
-        ui->filterDataButton->setEnabled(true);
+        enableOperate(true);
     });
-    ui->loadDataButton->setEnabled(false);
-    ui->filterDataButton->setEnabled(false);
+    enableOperate(false);
     controller->run(rootDir);
 }
 
@@ -152,10 +159,28 @@ void MainWindow::onFilterDataButtonClicked()
     connect(controller, &FilterDataController::printLog, this, &MainWindow::onPrintLog);
     connect(controller, &FilterDataController::runFinish, [this, controller]() {
         controller->deleteLater();
-        ui->loadDataButton->setEnabled(true);
-        ui->filterDataButton->setEnabled(true);
+        enableOperate(true);
     });
-    ui->loadDataButton->setEnabled(false);
-    ui->filterDataButton->setEnabled(false);
+    enableOperate(false);
     controller->run(onlyFilterToMonth, beginDate, endDate);
+}
+
+void MainWindow::onMergeDataButtonClicked()
+{
+    QString rootDir = QFileDialog::getExistingDirectory(this, QString::fromWCharArray(L"选择合并数据根目录"),
+                                                      QDir::homePath());
+    if (rootDir.isEmpty())
+    {
+        return;
+    }
+
+    bool compare2Part = ui->compare2PartButton->isChecked();
+    MergeDataController* controller = new MergeDataController(this);
+    connect(controller, &MergeDataController::printLog, this, &MainWindow::onPrintLog);
+    connect(controller, &MergeDataController::runFinish, [this, controller]() {
+        controller->deleteLater();
+        enableOperate(true);
+    });
+    enableOperate(false);
+    controller->run(rootDir, compare2Part);
 }

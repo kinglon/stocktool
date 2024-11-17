@@ -21,6 +21,7 @@ SOURCES += \
     loaddatacontroller.cpp \
     main.cpp \
     mainwindow.cpp \
+    mergedatacontroller.cpp \
     settingmanager.cpp \
     uiutil.cpp
 
@@ -37,6 +38,7 @@ HEADERS += \
     filterdatacontroller.h \
     loaddatacontroller.h \
     mainwindow.h \
+    mergedatacontroller.h \
     settingmanager.h \
     uiutil.h
 

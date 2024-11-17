@@ -135,17 +135,17 @@ bool StockFileLoader::getStockNameAndType(const QString& fileName, QString& stoc
     return true;
 }
 
-void StockFileLoader::processOneLine(const QString& industryName, const QString& stockName, int dataType, const QString& line)
+bool StockFileLoader::parseOneLine(const QString& industryName, const QString& stockName, int dataType, const QString& line, StockData& stockData)
 {
     if (line.isEmpty())
     {
-        return;
+        return false;
     }
 
     QStringList fields = line.split(',');
     if (fields.length() < 5)
     {
-        return;
+        return false;
     }
 
     QStringList newFields;
@@ -155,24 +155,23 @@ void StockFileLoader::processOneLine(const QString& industryName, const QString&
         QString subString = field.mid(1, field.length()-2);
         if (subString.isEmpty())
         {
-            return;
+            return false;
         }
         newFields.append(subString);
     }
 
     if (newFields[0] == QString::fromWCharArray(L"时间"))
     {
-        return;
+        return false;
     }
 
-    StockData stockData;
     stockData.m_industryName = industryName;
     stockData.m_stockName = stockName;
     if (dataType == STOCK_DATA_YEAR || dataType == STOCK_DATA_MONTH)
     {
         if (newFields.length() != 7)
         {
-            return;
+            return false;
         }
 
         stockData.m_lunarTime = newFields[0];
@@ -180,14 +179,14 @@ void StockFileLoader::processOneLine(const QString& industryName, const QString&
         QDateTime beginTime = QDateTime::fromString(newFields[1], "yyyy-M-d");
         if (!beginTime.isValid())
         {
-            return;
+            return false;
         }
         stockData.m_beginTime = beginTime.toSecsSinceEpoch();
 
         QDateTime endTime = QDateTime::fromString(newFields[2], "yyyy-M-d");
         if (!endTime.isValid())
         {
-            return;
+            return false;
         }
         stockData.m_endTime = endTime.toSecsSinceEpoch();
 
@@ -200,7 +199,7 @@ void StockFileLoader::processOneLine(const QString& industryName, const QString&
     {
         if (newFields.length() != 5)
         {
-            return;
+            return false;
         }
 
         // 时数据，有大量不需要，优先过滤掉
@@ -210,7 +209,7 @@ void StockFileLoader::processOneLine(const QString& industryName, const QString&
             stockData.m_hour = newFields[0].right(1);
             if (stockData.m_hour != YiWord && stockData.m_hour != WuWord && stockData.m_hour != WeiWord)
             {
-                return;
+                return false;
             }
             dateString = newFields[0].left(newFields[0].length()-1);
         }
@@ -227,6 +226,17 @@ void StockFileLoader::processOneLine(const QString& industryName, const QString&
         {
             stockData.m_data[i] = newFields[1+i];
         }
+    }
+
+    return true;
+}
+
+void StockFileLoader::processOneLine(const QString& industryName, const QString& stockName, int dataType, const QString& line)
+{
+    StockData stockData;
+    if (!parseOneLine(industryName, stockName, dataType, line, stockData))
+    {
+        return;
     }
 
     if (dataType == STOCK_DATA_HOUR)
