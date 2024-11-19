@@ -53,12 +53,11 @@ void MyChartWidget::paintEvent(QPaintEvent *)
                                  Qt::AlignLeft | Qt::AlignVCenter, dateString);
 
         // 画柱状图
-        static int maxCount = 30;
         int maxWidth = width() - DATE_AREA_WIDTH - BAR_RIGHT_PADDING;
         int lineWidth = maxWidth;
-        if (chartData.m_count < maxCount)
+        if (chartData.m_count < m_maxCount)
         {
-            lineWidth = (int)(chartData.m_count*1.0f/maxCount*maxWidth);
+            lineWidth = (int)(chartData.m_count*1.0f/m_maxCount*maxWidth);
         }
         static int topPadding = (LINE_HEIGHT-BAR_HEIGHT)/2;
         QRect rectToDraw(DATE_AREA_WIDTH, i*LINE_HEIGHT+topPadding, lineWidth, BAR_HEIGHT);

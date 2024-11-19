@@ -5,6 +5,7 @@
 #include <QFile>
 #include <QDateTime>
 #include "datamanager.h"
+#include "uiutil.h"
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -36,6 +37,14 @@ void MainWindow::initCtrls()
 
 void MainWindow::onLoadDataButtonClicked()
 {
+    bool ok = false;
+    int maxCount = ui->maxCountEdit->text().toInt(&ok);
+    if (!ok || maxCount <= 0)
+    {
+        UiUtil::showTip(QString::fromWCharArray(L"请填写正确的满柱数"));
+        return;
+    }
+
     QFileDialog fileDialog;
     fileDialog.setWindowTitle(QString::fromWCharArray(L"选择文件"));
     fileDialog.setNameFilters(QStringList() << "text files (*.txt)");
@@ -104,6 +113,7 @@ void MainWindow::onLoadDataButtonClicked()
 
     if (m_myChartWidget)
     {
+        m_myChartWidget->setMaxCount(maxCount);
         m_myChartWidget->onDataChanged();
     }
 }

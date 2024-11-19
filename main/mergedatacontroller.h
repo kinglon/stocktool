@@ -46,11 +46,15 @@ private:
 
     void mergeDayAndDayLine();
 
-    void filterData(QVector<DayLineData>& dayLineDatas);
+    StockData getMonthDataByDayData(const StockData& stockData);
 
-    void mergeMonthData(QVector<DayLineData>& dayLineDatas);
+    void mergeMonthData();
 
-    void save(QVector<DayLineData>& dayLineDatas);
+    void filterData(const StockData& stockData, QVector<DayLineData>& dayLineDatas);
+
+    void appendData(const StockData& stockData, const QVector<DayLineData>& dayLineDatas, QString& result);
+
+    void save(const QString& result);
 
 public:    
     QVector<QString> m_stockPaths;
@@ -58,6 +62,10 @@ public:
     QVector<QString> m_industryNames;
 
     bool m_compare2Part = true;
+
+    qint64 m_beginDate = 0;
+
+    qint64 m_endDate = 0;
 
     int m_currentIndex = 0;
 
@@ -76,7 +84,7 @@ public:
 
 public:
     // compare2Part True 2宫比对，False 4宫比对
-    void run(QString rootDir, bool compare2Part);
+    void run(QString rootDir, bool compare2Part, qint64 beginDate, qint64 endDate);
 
     static bool removeDir(const QString &dirName);
 

@@ -167,6 +167,14 @@ void MainWindow::onFilterDataButtonClicked()
 
 void MainWindow::onMergeDataButtonClicked()
 {
+    qint64 beginDate = ui->beginDateEdit->dateTime().toSecsSinceEpoch();
+    qint64 endDate = ui->endDateEdit->dateTime().addDays(1).toSecsSinceEpoch(); // 合并的时候不含endDate这一天
+    if (beginDate > endDate)
+    {
+        UiUtil::showTip(QString::fromWCharArray(L"请正确设置合并时间"));
+        return;
+    }
+
     QString rootDir = QFileDialog::getExistingDirectory(this, QString::fromWCharArray(L"选择合并数据根目录"),
                                                       QDir::homePath());
     if (rootDir.isEmpty())
@@ -182,5 +190,5 @@ void MainWindow::onMergeDataButtonClicked()
         enableOperate(true);
     });
     enableOperate(false);
-    controller->run(rootDir, compare2Part);
+    controller->run(rootDir, compare2Part, beginDate, endDate);
 }
