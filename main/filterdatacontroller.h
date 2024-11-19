@@ -81,6 +81,8 @@ private:
 
     void saveStockDataDetail();
 
+    void saveStockDataDetail(int begin, int end);
+
     void appendSpaceChar(QString& result, int count);
 
     StockData findYearStockDataByMonth(const StockData& monthStockData);
