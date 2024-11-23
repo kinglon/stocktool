@@ -31,8 +31,6 @@ void DataMerger::run()
     emit runFinish(this);
 }
 
-
-
 void DataMerger::doMerge()
 {
     // 加载数据
@@ -44,30 +42,8 @@ void DataMerger::doMerge()
     // 合并日线数据与日数据
     mergeDayAndDayLine();
 
-    // 合并月数据
-    mergeMonthData();
-
-    int begin = 0;
-    for (; begin<m_dayStockData.size(); begin++)
-    {
-        if (m_dayStockData[begin].m_beginTime >= m_beginDate)
-        {
-            break;
-        }
-    }
-
-    QString result;
-    for (; begin<=m_dayStockData.size(); begin++)
-    {
-        if (m_dayStockData[begin].m_beginTime >= m_endDate)
-        {
-            break;
-        }
-
-        QVector<DayLineData> dayLineDatas;
-        filterData(m_dayStockData[begin], dayLineDatas);
-        appendData(m_dayStockData[begin], dayLineDatas, result);
-    }
+    // 获取对比结果
+    QString result = getCompareResult();
 
     // 保存
     save(result);
@@ -77,7 +53,7 @@ bool DataMerger::loadData()
 {
     QDir dir(m_stockPaths[m_currentIndex]);
     QFileInfoList fileList = dir.entryInfoList(QDir::Files);
-    QString dayFilePath, monthFilePath, dayLineFilePath;
+    QString dayFilePath, monthFilePath, yearFilePath, dayLineFilePath;
     foreach (const QFileInfo &fileInfo, fileList)
     {
         QString fileName = fileInfo.fileName();
@@ -90,12 +66,16 @@ bool DataMerger::loadData()
         {
             monthFilePath = filePath;
         }
+        else if (fileName.indexOf(QString::fromWCharArray(L"年.csv")) > 0)
+        {
+            yearFilePath = filePath;
+        }
         else if (fileName.indexOf(QString::fromWCharArray(L"日线")) > 0)
         {
             dayLineFilePath = filePath;
         }
     }
-    if (dayFilePath.isEmpty() || monthFilePath.isEmpty() || dayLineFilePath.isEmpty())
+    if (dayFilePath.isEmpty() || monthFilePath.isEmpty() || yearFilePath.isEmpty() || dayLineFilePath.isEmpty())
     {
         return false;
     }
@@ -138,6 +118,23 @@ bool DataMerger::loadData()
             }
         }
         monthFile.close();
+    }
+
+    // 加载年数据
+    QFile yearFile(yearFilePath);
+    if (yearFile.open(QIODevice::ReadOnly | QIODevice::Text))
+    {
+        QTextStream in(&yearFile);
+        while (!in.atEnd())
+        {
+            QString line = in.readLine();
+            StockData stockData;
+            if (StockFileLoader::parseOneLine(m_industryNames[m_currentIndex], stockName, STOCK_DATA_YEAR, line, stockData))
+            {
+                m_yearStockData.append(stockData);
+            }
+        }
+        yearFile.close();
     }
 
     // 加载日线数据
@@ -245,107 +242,12 @@ StockData DataMerger::getMonthDataByDayData(const StockData& stockData)
     return StockData();
 }
 
-void DataMerger::mergeMonthData()
+void DataMerger::appendSpaceChar(QString& result, int count)
 {
-    for (auto& dayLineData : m_dayLineDatas)
+    for (int i=0; i<count; i++)
     {
-        dayLineData.m_monthStockData = getMonthDataByDayData(dayLineData.m_dayStockData);
+        result.append(' ');
     }
-}
-
-void DataMerger::filterData(const StockData& dayStockData, QVector<DayLineData>& dayLineDatas)
-{
-    for (int i=0; i<m_dayLineDatas.size(); i++)
-    {
-        if (m_dayLineDatas[i].m_dayStockData.m_beginTime >= dayStockData.m_beginTime)
-        {
-            break;
-        }
-
-        bool ok = false;
-        if (m_compare2Part)
-        {
-            if (dayStockData.m_data[0] == m_dayLineDatas[i].m_dayStockData.m_data[0]
-                    && dayStockData.m_data[1] == m_dayLineDatas[i].m_dayStockData.m_data[1])
-            {
-                ok = true;
-            }
-        }
-        else
-        {
-            ok = true;
-            for (int j=0; j<DATA_FIELD_LENGTH;j++)
-            {
-                if (dayStockData.m_data[j] != m_dayLineDatas[i].m_dayStockData.m_data[j])
-                {
-                    ok = false;
-                    break;
-                }
-            }
-        }
-
-        if (ok)
-        {
-            dayLineDatas.append(m_dayLineDatas[i]);
-        }
-    }
-}
-
-void DataMerger::appendData(const StockData& dayStockData, const QVector<DayLineData>& dayLineDatas, QString& result)
-{
-    QString seperator = "    ";
-
-    // 输出比对股票日月信息
-    result += dayStockData.m_stockName;
-    result += seperator + QDateTime::fromSecsSinceEpoch(dayStockData.m_beginTime).toString("yyyy/M/d");
-    for (int i=0; i<DATA_FIELD_LENGTH; i++)
-    {
-        result += seperator + dayStockData.m_data[i];
-    }
-
-    StockData monthStockData = getMonthDataByDayData(dayStockData);
-    if (!monthStockData.m_stockName.isEmpty())
-    {
-        result += seperator + monthStockData.m_lunarTime;
-        for (int i=0; i<DATA_FIELD_LENGTH; i++)
-        {
-            result += seperator + monthStockData.m_data[i];
-        }
-    }
-
-    result += "\r\n\r\n";
-
-    if (dayLineDatas.isEmpty())
-    {
-        result += QString::fromWCharArray(L"无");
-        result += "\r\n";
-    }
-    else
-    {
-        // 一行行输出匹配的日月信息
-        for (auto& dayLineData : dayLineDatas)
-        {
-            result += dayLineData.m_dayStockData.m_stockName;
-            result += seperator + QDateTime::fromSecsSinceEpoch(dayLineData.m_dayStockData.m_beginTime).toString("yyyy/M/d");
-            result += seperator + dayLineData.m_zhangfu;
-            for (int i=0; i<DATA_FIELD_LENGTH; i++)
-            {
-                result += seperator + dayLineData.m_dayStockData.m_data[i];
-            }
-
-            if (!dayLineData.m_monthStockData.m_stockName.isEmpty())
-            {
-                result += seperator + dayLineData.m_monthStockData.m_lunarTime;
-                for (int i=0; i<DATA_FIELD_LENGTH; i++)
-                {
-                    result += seperator + dayLineData.m_monthStockData.m_data[i];
-                }
-            }
-
-            result += "\r\n";
-        }
-    }
-    result += "\r\n";
 }
 
 void DataMerger::save(const QString& result)
@@ -405,7 +307,7 @@ MergeDataController::MergeDataController(QObject *parent)
 
 }
 
-void MergeDataController::run(QString rootDir, bool compare2Part, qint64 beginDate, qint64 endDate)
+void MergeDataController::run(QString rootDir, bool compare2Part)
 {
     QString savePath = QString::fromStdWString(CImPath::GetDataPath()) + QString::fromWCharArray(L"合并\\");
     if (!removeDir(savePath))
@@ -440,10 +342,8 @@ void MergeDataController::run(QString rootDir, bool compare2Part, qint64 beginDa
             end = m_stockPaths.size();
         }
 
-        DataMerger* dataMerger = new DataMerger();
+        DataMerger* dataMerger = getDataMerger();
         dataMerger->m_compare2Part = compare2Part;
-        dataMerger->m_beginDate = beginDate;
-        dataMerger->m_endDate = endDate;
         for (int j=begin; j<end; j++)
         {
             dataMerger->m_stockPaths.append(m_stockPaths[j]);

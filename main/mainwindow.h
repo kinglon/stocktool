@@ -27,7 +27,9 @@ private slots:
 
     void onFilterDataButtonClicked();
 
-    void onMergeDataButtonClicked();
+    void onDayCompareButtonClicked();
+
+    void onMonthCompareButtonClicked();
 
 protected:
     void closeEvent(QCloseEvent *event) override;

@@ -12,9 +12,6 @@ public:
     // 日数据
     StockData m_dayStockData;
 
-    // 月数据
-    StockData m_monthStockData;
-
     // 时间
     qint64 m_dayTime = 0;
 
@@ -37,7 +34,7 @@ signals:
 
     void runFinish(DataMerger* dataMerger);
 
-private:
+protected:
     void doMerge();
 
     bool loadData();
@@ -48,11 +45,9 @@ private:
 
     StockData getMonthDataByDayData(const StockData& stockData);
 
-    void mergeMonthData();
+    virtual QString getCompareResult() = 0;
 
-    void filterData(const StockData& stockData, QVector<DayLineData>& dayLineDatas);
-
-    void appendData(const StockData& stockData, const QVector<DayLineData>& dayLineDatas, QString& result);
+    void appendSpaceChar(QString& result, int count);
 
     void save(const QString& result);
 
@@ -63,15 +58,13 @@ public:
 
     bool m_compare2Part = true;
 
-    qint64 m_beginDate = 0;
-
-    qint64 m_endDate = 0;
-
     int m_currentIndex = 0;
 
     QVector<StockData> m_dayStockData;
 
     QVector<StockData> m_monthStockData;
+
+    QVector<StockData> m_yearStockData;
 
     QVector<DayLineData> m_dayLineDatas;
 };
@@ -84,9 +77,12 @@ public:
 
 public:
     // compare2Part True 2宫比对，False 4宫比对
-    void run(QString rootDir, bool compare2Part, qint64 beginDate, qint64 endDate);
+    void run(QString rootDir, bool compare2Part);
 
     static bool removeDir(const QString &dirName);
+
+protected:
+    virtual DataMerger* getDataMerger() = 0;
 
 signals:
     void printLog(QString content);

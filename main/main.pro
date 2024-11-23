@@ -17,11 +17,13 @@ SOURCES += \
     Utility/LogUtil.cpp \
     datamanager.cpp \
     datamodel.cpp \
+    daymergedatacontroller.cpp \
     filterdatacontroller.cpp \
     loaddatacontroller.cpp \
     main.cpp \
     mainwindow.cpp \
     mergedatacontroller.cpp \
+    monthmergedatacontroller.cpp \
     settingmanager.cpp \
     uiutil.cpp
 
@@ -35,10 +37,12 @@ HEADERS += \
     Utility/LogUtil.h \
     datamanager.h \
     datamodel.h \
+    daymergedatacontroller.h \
     filterdatacontroller.h \
     loaddatacontroller.h \
     mainwindow.h \
     mergedatacontroller.h \
+    monthmergedatacontroller.h \
     settingmanager.h \
     uiutil.h
 

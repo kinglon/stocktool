@@ -6,7 +6,8 @@
 #include "Utility/LogUtil.h"
 #include "loaddatacontroller.h"
 #include "filterdatacontroller.h"
-#include "mergedatacontroller.h"
+#include "daymergedatacontroller.h"
+#include "monthmergedatacontroller.h"
 #include "datamanager.h"
 
 MainWindow::MainWindow(QWidget *parent)
@@ -49,14 +50,16 @@ void MainWindow::initCtrls()
 
     connect(ui->loadDataButton, &QPushButton::clicked, this, &MainWindow::onLoadDataButtonClicked);
     connect(ui->filterDataButton, &QPushButton::clicked, this, &MainWindow::onFilterDataButtonClicked);
-    connect(ui->mergeDataButton, &QPushButton::clicked, this, &MainWindow::onMergeDataButtonClicked);
+    connect(ui->dayCompareButton, &QPushButton::clicked, this, &MainWindow::onDayCompareButtonClicked);
+    connect(ui->monthCompareButton, &QPushButton::clicked, this, &MainWindow::onMonthCompareButtonClicked);
 }
 
 void MainWindow::enableOperate(bool enable)
 {
     ui->loadDataButton->setEnabled(enable);
     ui->filterDataButton->setEnabled(enable);
-    ui->mergeDataButton->setEnabled(enable);
+    ui->dayCompareButton->setEnabled(enable);
+    ui->monthCompareButton->setEnabled(enable);
 }
 
 void MainWindow::closeEvent(QCloseEvent *event)
@@ -165,7 +168,7 @@ void MainWindow::onFilterDataButtonClicked()
     controller->run(onlyFilterToMonth, beginDate, endDate);
 }
 
-void MainWindow::onMergeDataButtonClicked()
+void MainWindow::onDayCompareButtonClicked()
 {
     qint64 beginDate = ui->beginDateEdit->dateTime().toSecsSinceEpoch();
     qint64 endDate = ui->endDateEdit->dateTime().addDays(1).toSecsSinceEpoch(); // 合并的时候不含endDate这一天
@@ -183,12 +186,34 @@ void MainWindow::onMergeDataButtonClicked()
     }
 
     bool compare2Part = ui->compare2PartButton->isChecked();
-    MergeDataController* controller = new MergeDataController(this);
+    DayMergeDataController* controller = new DayMergeDataController(this);
+    controller->m_beginDate = beginDate;
+    controller->m_endDate = endDate;
     connect(controller, &MergeDataController::printLog, this, &MainWindow::onPrintLog);
     connect(controller, &MergeDataController::runFinish, [this, controller]() {
         controller->deleteLater();
         enableOperate(true);
     });
     enableOperate(false);
-    controller->run(rootDir, compare2Part, beginDate, endDate);
+    controller->run(rootDir, compare2Part);
+}
+
+void MainWindow::onMonthCompareButtonClicked()
+{
+    QString rootDir = QFileDialog::getExistingDirectory(this, QString::fromWCharArray(L"选择合并数据根目录"),
+                                                      QDir::homePath());
+    if (rootDir.isEmpty())
+    {
+        return;
+    }
+
+    bool compare2Part = ui->compare2PartButton->isChecked();
+    MonthMergeDataController* controller = new MonthMergeDataController(this);
+    connect(controller, &MergeDataController::printLog, this, &MainWindow::onPrintLog);
+    connect(controller, &MergeDataController::runFinish, [this, controller]() {
+        controller->deleteLater();
+        enableOperate(true);
+    });
+    enableOperate(false);
+    controller->run(rootDir, compare2Part);
 }
