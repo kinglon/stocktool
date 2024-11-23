@@ -66,10 +66,7 @@ void DataMerger::doMerge()
 
         QVector<DayLineData> dayLineDatas;
         filterData(m_dayStockData[begin], dayLineDatas);
-        if (!dayLineDatas.empty())
-        {
-            appendData(m_dayStockData[begin], dayLineDatas, result);
-        }
+        appendData(m_dayStockData[begin], dayLineDatas, result);
     }
 
     // 保存
@@ -116,7 +113,11 @@ bool DataMerger::loadData()
             StockData stockData;
             if (StockFileLoader::parseOneLine(m_industryNames[m_currentIndex], stockName, STOCK_DATA_DAY, line, stockData))
             {
-                m_dayStockData.append(stockData);
+                QDate date = QDateTime::fromSecsSinceEpoch(stockData.m_beginTime).date();
+                if (date.dayOfWeek() != 6 && date.dayOfWeek() != 7)
+                {
+                    m_dayStockData.append(stockData);
+                }
             }
         }
         dayFile.close();
@@ -295,7 +296,6 @@ void DataMerger::appendData(const StockData& dayStockData, const QVector<DayLine
     QString seperator = "    ";
 
     // 输出比对股票日月信息
-    StockData monthStockData = getMonthDataByDayData(dayStockData);
     result += dayStockData.m_stockName;
     result += seperator + QDateTime::fromSecsSinceEpoch(dayStockData.m_beginTime).toString("yyyy/M/d");
     for (int i=0; i<DATA_FIELD_LENGTH; i++)
@@ -303,6 +303,7 @@ void DataMerger::appendData(const StockData& dayStockData, const QVector<DayLine
         result += seperator + dayStockData.m_data[i];
     }
 
+    StockData monthStockData = getMonthDataByDayData(dayStockData);
     if (!monthStockData.m_stockName.isEmpty())
     {
         result += seperator + monthStockData.m_lunarTime;
@@ -314,27 +315,35 @@ void DataMerger::appendData(const StockData& dayStockData, const QVector<DayLine
 
     result += "\r\n\r\n";
 
-    // 一行行输出匹配的日月信息
-    for (auto& dayLineData : dayLineDatas)
+    if (dayLineDatas.isEmpty())
     {
-        result += dayLineData.m_dayStockData.m_stockName;
-        result += seperator + QDateTime::fromSecsSinceEpoch(dayLineData.m_dayStockData.m_beginTime).toString("yyyy/M/d");
-        result += seperator + dayLineData.m_zhangfu;
-        for (int i=0; i<DATA_FIELD_LENGTH; i++)
+        result += QString::fromWCharArray(L"无");
+        result += "\r\n";
+    }
+    else
+    {
+        // 一行行输出匹配的日月信息
+        for (auto& dayLineData : dayLineDatas)
         {
-            result += seperator + dayLineData.m_dayStockData.m_data[i];
-        }
-
-        if (!dayLineData.m_monthStockData.m_stockName.isEmpty())
-        {
-            result += seperator + dayLineData.m_monthStockData.m_lunarTime;
+            result += dayLineData.m_dayStockData.m_stockName;
+            result += seperator + QDateTime::fromSecsSinceEpoch(dayLineData.m_dayStockData.m_beginTime).toString("yyyy/M/d");
+            result += seperator + dayLineData.m_zhangfu;
             for (int i=0; i<DATA_FIELD_LENGTH; i++)
             {
-                result += seperator + dayLineData.m_monthStockData.m_data[i];
+                result += seperator + dayLineData.m_dayStockData.m_data[i];
             }
-        }
 
-        result += "\r\n";
+            if (!dayLineData.m_monthStockData.m_stockName.isEmpty())
+            {
+                result += seperator + dayLineData.m_monthStockData.m_lunarTime;
+                for (int i=0; i<DATA_FIELD_LENGTH; i++)
+                {
+                    result += seperator + dayLineData.m_monthStockData.m_data[i];
+                }
+            }
+
+            result += "\r\n";
+        }
     }
     result += "\r\n";
 }
@@ -418,7 +427,7 @@ void MergeDataController::run(QString rootDir, bool compare2Part, qint64 beginDa
 
     emit printLog(QString::fromWCharArray(L"开始合并数据"));
 
-    // 开启多线程筛选数据
+    // 开启多线程合并数据
     int threadCount = QThread::idealThreadCount();
     threadCount = qMin(threadCount, m_stockPaths.size());
     int stockPerThread = m_stockPaths.size() / threadCount;

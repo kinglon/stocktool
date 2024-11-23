@@ -958,25 +958,7 @@ void FilterDataController::saveStockDataDetail(int begin, int end)
         dir.mkpath(savePath);
     }
 
-    if (!m_stockDatas[begin].m_industryName.isEmpty())
-    {
-        savePath += m_stockDatas[begin].m_industryName + "\\";
-        if (!dir.exists(savePath))
-        {
-            dir.mkpath(savePath);
-        }
-    }
-
     QString stockName = m_stockDatas[begin].m_stockName;
-    if (!stockName.isEmpty())
-    {
-        savePath += m_stockDatas[begin].m_stockName + "\\";
-        if (!dir.exists(savePath))
-        {
-            dir.mkpath(savePath);
-        }
-    }
-
     QString result;
     QString lunarTime;
     qint64 beginTime = 0;
