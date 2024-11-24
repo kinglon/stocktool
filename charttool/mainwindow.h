@@ -28,6 +28,8 @@ private slots:
 
     void onSaveImageButtonClicked();
 
+    void onAddAvgLineButtonClicked();
+
 private:
     Ui::MainWindow *ui;
 

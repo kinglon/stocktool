@@ -45,6 +45,19 @@ public:
     }
 };
 
+class AvgLine
+{
+public:
+    // 表格数据开始索引
+    int m_begin = 0;
+
+    // 表格数据结束索引（含）
+    int m_end = 0;
+
+    // 平均格式
+    int m_count = 1;
+};
+
 class DataManager
 {
 protected:
@@ -55,4 +68,6 @@ public:
 
 public:
     QVector<ChartData> m_chartDatas;
+
+    QVector<AvgLine> m_avgLines;
 };

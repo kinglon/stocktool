@@ -31,8 +31,13 @@ void MainWindow::initCtrls()
     m_myChartWidget->setFixedHeight(0);
     ui->scrollArea->setWidget(m_myChartWidget);
 
+    QDate now = QDate::currentDate();
+    ui->beginDateEdit->setDate(now.addYears(-1));
+    ui->endDateEdit->setDate(now);
+
     connect(ui->loadDataButton, &QPushButton::clicked, this, &MainWindow::onLoadDataButtonClicked);
     connect(ui->saveImageButton, &QPushButton::clicked, this, &MainWindow::onSaveImageButtonClicked);
+    connect(ui->addAvgLineButton, &QPushButton::clicked, this, &MainWindow::onAddAvgLineButtonClicked);
 }
 
 void MainWindow::onLoadDataButtonClicked()
@@ -57,6 +62,7 @@ void MainWindow::onLoadDataButtonClicked()
     QFile file(selectedFiles[0]);
     if (file.open(QIODevice::ReadOnly | QIODevice::Text))
     {
+        DataManager::getInstance()->m_avgLines.clear();
         DataManager::getInstance()->m_chartDatas.clear();
         QTextStream in(&file);
         in.setCodec("UTF-8");
@@ -167,5 +173,78 @@ void MainWindow::onSaveImageButtonClicked()
     if (!filePath.isEmpty())
     {
         pixmap.save(filePath);
+    }
+}
+
+void MainWindow::onAddAvgLineButtonClicked()
+{
+    QVector<ChartData>& chartDatas = DataManager::getInstance()->m_chartDatas;
+    if (chartDatas.empty())
+    {
+        UiUtil::showTip(QString::fromWCharArray(L"请先加载数据"));
+        return;
+    }
+
+    QDate beginDate = ui->beginDateEdit->date();
+    QDate endDate = ui->endDateEdit->date();
+    if (beginDate > endDate)
+    {
+        UiUtil::showTip(QString::fromWCharArray(L"请正确填写日期范围"));
+        return;
+    }
+
+    QDateTime beginDateTime;
+    beginDateTime.setDate(beginDate);
+    if (chartDatas[0].m_type == CHART_DATA_TYPE_MONTH)
+    {
+        beginDateTime.setDate(QDate(beginDate.year(), beginDate.month(), 1));
+    }
+    int beginTime = beginDateTime.toSecsSinceEpoch();
+
+    QDateTime endDateTime;
+    endDateTime.setDate(endDate);
+    if (chartDatas[0].m_type == CHART_DATA_TYPE_MONTH)
+    {
+        endDateTime.setDate(QDate(endDate.year(), endDate.month(), 1));
+    }
+    int endTime = endDateTime.toSecsSinceEpoch();
+
+    int begin = -1;
+    int end = -1;
+    int total = 0;
+    for (int i=0; i<chartDatas.size(); i++)
+    {
+        if (chartDatas[i].m_date < beginTime)
+        {
+            continue;
+        }
+
+        if (chartDatas[i].m_date > endTime)
+        {
+            break;
+        }
+
+        if (begin == -1)
+        {
+            begin = i;
+        }
+        end = i;
+        total += chartDatas[i].m_count;
+    }
+
+    if (begin >= 0 && end >= 0)
+    {
+        int count = total / (end - begin + 1);
+        count = qMax(count, 1);
+
+        AvgLine avgLine;
+        avgLine.m_begin = begin;
+        avgLine.m_end = end;
+        avgLine.m_count = count;
+        DataManager::getInstance()->m_avgLines.append(avgLine);
+        if (m_myChartWidget)
+        {
+            m_myChartWidget->onDataChanged();
+        }
     }
 }

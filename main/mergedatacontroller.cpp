@@ -23,6 +23,7 @@ void DataMerger::run()
         m_currentIndex = i;
         m_dayStockData.clear();
         m_monthStockData.clear();
+        m_yearStockData.clear();
         m_dayLineDatas.clear();
 
         doMerge();
@@ -262,25 +263,7 @@ void DataMerger::save(const QString& result)
     if (!dir.exists(savePath))
     {
         dir.mkpath(savePath);
-    }
-
-    if (!m_dayLineDatas[0].m_dayStockData.m_industryName.isEmpty())
-    {
-        savePath += m_dayLineDatas[0].m_dayStockData.m_industryName + "\\";
-        if (!dir.exists(savePath))
-        {
-            dir.mkpath(savePath);
-        }
-    }
-
-    if (!m_dayLineDatas[0].m_dayStockData.m_stockName.isEmpty())
-    {
-        savePath += m_dayLineDatas[0].m_dayStockData.m_stockName + "\\";
-        if (!dir.exists(savePath))
-        {
-            dir.mkpath(savePath);
-        }
-    }
+    }    
 
     QString fileName = m_dayLineDatas[0].m_dayStockData.m_stockName+QString::fromWCharArray(L"二宫比对.txt");
     if (!m_compare2Part)
