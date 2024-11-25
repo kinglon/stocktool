@@ -58,13 +58,7 @@ void DataFilter::filterOnlyToMonth(QDate date)
     if (yearStockDatas.empty())
     {
         return;
-    }
-
-    if (!SettingManager::getInstance()->m_filterCondition[MONTH_FILTER_CONDTION].isEnable())
-    {
-        m_stockDatas.append(yearStockDatas);
-        return;
-    }
+    }    
 
     // 筛选月数据
     QVector<StockData> monthStockDatas;
@@ -174,14 +168,7 @@ void DataFilter::filterNotOnlyToMonth(QDate date)
 
     // 筛选未时数据
     QVector<StockData> weiHourStockDatas;
-    if (!SettingManager::getInstance()->m_filterCondition[WEI_HOUR_FILTER_CONDTION].isEnable())
-    {
-        weiHourStockDatas = wuHourStockDatas;
-    }
-    else
-    {
-        filterHourData(date, wuHourStockDatas, STOCK_DATA_HOUR_WEI, WEI_HOUR_FILTER_CONDTION, weiHourStockDatas);
-    }
+    filterHourData(date, wuHourStockDatas, STOCK_DATA_HOUR_WEI, WEI_HOUR_FILTER_CONDTION, weiHourStockDatas);
     m_stockDatas.append(weiHourStockDatas);
 }
 
@@ -470,6 +457,11 @@ void DataFilter::filterHourData(QDate date, const QVector<StockData>& matchStock
 
 bool DataFilter::checkIfStockDataOk(StockData stockData, const FilterCondition& filterCondition)
 {
+    if (!filterCondition.isEnable())
+    {
+        return true;
+    }
+
     QString data1 = stockData.m_data[0];
     QString data2 = stockData.m_data[1];
 

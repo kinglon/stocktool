@@ -20,7 +20,7 @@ public:
     QString m_twoExclude;
 
 public:
-    bool isEnable()
+    bool isEnable() const
     {
         if (m_oneInclude.isEmpty() && m_oneExclude.isEmpty()
                 && m_twoInclude.isEmpty() && m_twoExclude.isEmpty())

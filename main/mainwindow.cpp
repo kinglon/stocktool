@@ -124,8 +124,7 @@ void MainWindow::onFilterDataButtonClicked()
         return;
     }
 
-    // 保存过滤条件
-    bool enable = false;
+    // 保存过滤条件    
     for (int i=0; i<MAX_FILTER_CONDTION_COUNT; i++)
     {
         QString editCtrlName = QString("lineEdit_%1").arg(i*4+1);
@@ -135,17 +134,8 @@ void MainWindow::onFilterDataButtonClicked()
         editCtrlName = QString("lineEdit_%1").arg(i*4+3);
         SettingManager::getInstance()->m_filterCondition[i].m_twoInclude = findChild<QLineEdit*>(editCtrlName)->text();
         editCtrlName = QString("lineEdit_%1").arg(i*4+4);
-        SettingManager::getInstance()->m_filterCondition[i].m_twoExclude = findChild<QLineEdit*>(editCtrlName)->text();
-        if (SettingManager::getInstance()->m_filterCondition[i].isEnable())
-        {
-            enable = true;
-        }
-    }
-    if (!enable)
-    {
-        UiUtil::showTip(QString::fromWCharArray(L"请设置过滤条件"));
-        return;
-    }
+        SettingManager::getInstance()->m_filterCondition[i].m_twoExclude = findChild<QLineEdit*>(editCtrlName)->text();        
+    }    
     SettingManager::getInstance()->save();
 
     // 获取筛选时间
