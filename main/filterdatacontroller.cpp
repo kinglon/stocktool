@@ -950,6 +950,15 @@ void FilterDataController::saveStockDataDetail(int begin, int end)
         dir.mkpath(savePath);
     }
 
+    if (!m_stockDatas[begin].m_industryName.isEmpty())
+    {
+        savePath += m_stockDatas[begin].m_industryName + "\\";
+        if (!dir.exists(savePath))
+        {
+            dir.mkpath(savePath);
+        }
+    }
+
     QString stockName = m_stockDatas[begin].m_stockName;
     QString result;
     QString lunarTime;
