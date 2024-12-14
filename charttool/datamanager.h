@@ -18,7 +18,7 @@ public:
     // 类型
     int m_type = CHART_DATA_TYPE_DAY;
 
-    // 日期的时间戳
+    // 日期的时间戳，单位秒
     qint64 m_date = 0;
 
     // 个数
@@ -58,6 +58,22 @@ public:
     int m_count = 1;
 };
 
+class ColorData
+{
+public:
+    // 类型
+    int m_type = CHART_DATA_TYPE_DAY;
+
+    // 日期的时间戳，单位秒
+    qint64 m_date = 0;
+
+    // 标志是否一宫含
+    bool oneInclude = false;
+
+    // 标志是否二宫含
+    bool twoInclude = false;
+};
+
 class DataManager
 {
 protected:
@@ -67,7 +83,17 @@ public:
     static DataManager* getInstance();
 
 public:
+    // 主能量数据
     QVector<ChartData> m_chartDatas;
 
     QVector<AvgLine> m_avgLines;
+
+    // 辅助能量1数据
+    QVector<ChartData> m_assist1Datas;
+
+    // 辅助能量2数据
+    QVector<ChartData> m_assist2Datas;
+
+    // 色块数据
+    QVector<ColorData> m_colorDatas;
 };

@@ -23,8 +23,26 @@ private:
 
     bool parseChartDataLine(const QString& line, ChartData& chartData);
 
+    bool parseColorDataLine(const QString& line, ColorData& colorData, const QString& oneInclude, const QString& twoInclude);
+
+    void checkIfInclude(QString data[4], const QString& oneInclude, const QString& twoInclude, bool& isOneInclude, bool& isTwoInclude);
+
+    bool hasCunWord(QString data, QString data1, QString data2);
+
+    bool haveWordWithoutKuohao(QString word, QString data[4]);
+
 private slots:
+    // 加载主能量数据
     void onLoadDataButtonClicked();
+
+    // 加载辅助能量1数据
+    void onLoadAssist1DataButtonClicked();
+
+    // 加载辅助能量2数据
+    void onLoadAssist2DataButtonClicked();
+
+    // 加载色块数据
+    void onLoadColorDataButtonClicked();
 
     void onSaveImageButtonClicked();
 
