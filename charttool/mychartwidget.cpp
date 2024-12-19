@@ -84,6 +84,17 @@ void MyChartWidget::paintEvent(QPaintEvent *)
 
 void MyChartWidget::paintBar(QPainter& painter, const ChartData& chartData, const QRect& rect)
 {
+    // 获取色块数据
+    const ColorData* colorData = nullptr;
+    for (const auto& item : DataManager::getInstance()->m_colorDatas)
+    {
+        if (item.m_type == chartData.m_type && item.m_date == chartData.m_date)
+        {
+            colorData = &item;
+            break;
+        }
+    }
+
     // 画辅助能量柱1
     const ChartData* assistData1 = nullptr;
     for (const auto& item : DataManager::getInstance()->m_assist1Datas)
@@ -96,25 +107,47 @@ void MyChartWidget::paintBar(QPainter& painter, const ChartData& chartData, cons
     }
 
     int lineWidth = rect.width();
-    if (assistData1 == nullptr || assistData1->m_count == 0)
+    if (assistData1)
     {
-        lineWidth = rect.width() / m_maxAssist1Count;
-        painter.setBrush(QBrush(RGB_ORANGE));
-        painter.setPen(RGB_ORANGE);
-    }
-    else
-    {
-        if (assistData1->m_count < m_maxAssist1Count)
+        if (assistData1->m_count == 0)
         {
-            lineWidth = (int)(assistData1->m_count*1.0f/m_maxAssist1Count*rect.width());
+            lineWidth = rect.width() / m_maxAssist1Count;
+            painter.setBrush(QBrush(RGB_ORANGE));
+            painter.setPen(RGB_ORANGE);
         }
-        QColor color = QColor(173, 131, 241).rgb();
-        painter.setBrush(QBrush(color));
-        painter.setPen(color);
-    }
+        else
+        {
+            if (assistData1->m_count < m_maxAssist1Count)
+            {
+                lineWidth = (int)(assistData1->m_count*1.0f/m_maxAssist1Count*rect.width());
+            }
+            QColor color = QColor(173, 131, 241).rgb();
+            painter.setBrush(QBrush(color));
+            painter.setPen(color);
+        }
+        QRect assist1Rect(rect.left(), rect.top(), lineWidth, (int)(0.25f*rect.height()));
+        painter.drawRect(assist1Rect);
 
-    QRect assist1Rect(rect.left(), rect.top(), lineWidth, (int)(0.25f*rect.height()));
-    painter.drawRect(assist1Rect);
+        // 画色块
+        int right = assist1Rect.right();
+        if (colorData && colorData->oneInclude)
+        {
+            painter.setBrush(QBrush(RGB_GREEN));
+            painter.setPen(RGB_GREEN);
+            QRect color1Rect(right, assist1Rect.top(), assist1Rect.height(), assist1Rect.height());
+            right += assist1Rect.height();
+            painter.drawRect(color1Rect);
+        }
+
+        if (colorData && colorData->twoInclude)
+        {
+            painter.setBrush(QBrush(RGB_ORANGE));
+            painter.setPen(RGB_ORANGE);
+            QRect color2Rect(right, assist1Rect.top(), assist1Rect.height(), assist1Rect.height());
+            right += assist1Rect.height();
+            painter.drawRect(color2Rect);
+        }
+    }
 
     // 画主能量柱
     lineWidth = rect.width();
@@ -125,52 +158,10 @@ void MyChartWidget::paintBar(QPainter& painter, const ChartData& chartData, cons
     QColor barColor(chartData.m_color);
     painter.setBrush(QBrush(barColor));
     painter.setPen(barColor);
-    QRect mainRect(rect.left(), rect.top()+assist1Rect.height(), lineWidth, (int)(0.5f*rect.height()));
+    QRect mainRect(rect.left(), rect.top()+(int)(0.25f*rect.height()), lineWidth, (int)(0.5f*rect.height()));
     painter.drawRect(mainRect);
 
-    // 画辅助能量柱2
-    const ChartData* assistData2 = nullptr;
-    for (const auto& item : DataManager::getInstance()->m_assist2Datas)
-    {
-        if (item.m_type == chartData.m_type && item.m_date == chartData.m_date)
-        {
-            assistData2 = &item;
-            break;
-        }
-    }
-
-    lineWidth = rect.width();
-    if (assistData2 == nullptr || assistData2->m_count == 0)
-    {
-        lineWidth = rect.width() / m_maxAssist2Count;
-        painter.setBrush(QBrush(RGB_ORANGE));
-        painter.setPen(RGB_ORANGE);
-    }
-    else
-    {
-        if (assistData2->m_count < m_maxAssist2Count)
-        {
-            lineWidth = (int)(assistData2->m_count*1.0f/m_maxAssist2Count*rect.width());
-        }
-        QColor color = QColor(173, 227, 126).rgb();
-        painter.setBrush(QBrush(color));
-        painter.setPen(color);
-    }
-
-    QRect assist2Rect(rect.left(), rect.top()+assist1Rect.height()+mainRect.height(), lineWidth, (int)(0.25f*rect.height()));
-    painter.drawRect(assist2Rect);
-
-    // 画色块，直接在主能量右侧画
-    const ColorData* colorData = nullptr;
-    for (const auto& item : DataManager::getInstance()->m_colorDatas)
-    {
-        if (item.m_type == chartData.m_type && item.m_date == chartData.m_date)
-        {
-            colorData = &item;
-            break;
-        }
-    }
-
+    // 画主能量柱色块
     int right = mainRect.right();
     if (colorData && colorData->oneInclude)
     {
@@ -188,6 +179,61 @@ void MyChartWidget::paintBar(QPainter& painter, const ChartData& chartData, cons
         QRect color2Rect(right, mainRect.top(), mainRect.height(), mainRect.height());
         right += mainRect.height();
         painter.drawRect(color2Rect);
+    }
+
+    // 画辅助能量柱2
+    const ChartData* assistData2 = nullptr;
+    for (const auto& item : DataManager::getInstance()->m_assist2Datas)
+    {
+        if (item.m_type == chartData.m_type && item.m_date == chartData.m_date)
+        {
+            assistData2 = &item;
+            break;
+        }
+    }
+
+    lineWidth = rect.width();
+    if (assistData2)
+    {
+        if (assistData2->m_count == 0)
+        {
+            lineWidth = rect.width() / m_maxAssist2Count;
+            painter.setBrush(QBrush(RGB_ORANGE));
+            painter.setPen(RGB_ORANGE);
+        }
+        else
+        {
+            if (assistData2->m_count < m_maxAssist2Count)
+            {
+                lineWidth = (int)(assistData2->m_count*1.0f/m_maxAssist2Count*rect.width());
+            }
+            QColor color = QColor(173, 227, 126).rgb();
+            painter.setBrush(QBrush(color));
+            painter.setPen(color);
+        }
+
+        QRect assist2Rect(rect.left(), rect.top()+(int)(0.75f*rect.height()), lineWidth, (int)(0.25f*rect.height()));
+        painter.drawRect(assist2Rect);
+
+        // 画色块
+        int right = assist2Rect.right();
+        if (colorData && colorData->oneInclude)
+        {
+            painter.setBrush(QBrush(RGB_GREEN));
+            painter.setPen(RGB_GREEN);
+            QRect color1Rect(right, assist2Rect.top(), assist2Rect.height(), assist2Rect.height());
+            right += assist2Rect.height();
+            painter.drawRect(color1Rect);
+        }
+
+        if (colorData && colorData->twoInclude)
+        {
+            painter.setBrush(QBrush(RGB_ORANGE));
+            painter.setPen(RGB_ORANGE);
+            QRect color2Rect(right, assist2Rect.top(), assist2Rect.height(), assist2Rect.height());
+            right += assist2Rect.height();
+            painter.drawRect(color2Rect);
+        }
     }
 }
 
