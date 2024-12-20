@@ -84,17 +84,6 @@ void MyChartWidget::paintEvent(QPaintEvent *)
 
 void MyChartWidget::paintBar(QPainter& painter, const ChartData& chartData, const QRect& rect)
 {
-    // 获取色块数据
-    const ColorData* colorData = nullptr;
-    for (const auto& item : DataManager::getInstance()->m_colorDatas)
-    {
-        if (item.m_type == chartData.m_type && item.m_date == chartData.m_date)
-        {
-            colorData = &item;
-            break;
-        }
-    }
-
     // 画辅助能量柱1
     const ChartData* assistData1 = nullptr;
     for (const auto& item : DataManager::getInstance()->m_assist1Datas)
@@ -129,6 +118,16 @@ void MyChartWidget::paintBar(QPainter& painter, const ChartData& chartData, cons
         painter.drawRect(assist1Rect);
 
         // 画色块
+        const ColorData* colorData = nullptr;
+        for (const auto& item : DataManager::getInstance()->m_assist1ColorDatas)
+        {
+            if (item.m_type == chartData.m_type && item.m_date == chartData.m_date)
+            {
+                colorData = &item;
+                break;
+            }
+        }
+
         int right = assist1Rect.right();
         if (colorData && colorData->oneInclude)
         {
@@ -162,6 +161,15 @@ void MyChartWidget::paintBar(QPainter& painter, const ChartData& chartData, cons
     painter.drawRect(mainRect);
 
     // 画主能量柱色块
+    const ColorData* colorData = nullptr;
+    for (const auto& item : DataManager::getInstance()->m_colorDatas)
+    {
+        if (item.m_type == chartData.m_type && item.m_date == chartData.m_date)
+        {
+            colorData = &item;
+            break;
+        }
+    }
     int right = mainRect.right();
     if (colorData && colorData->oneInclude)
     {
@@ -216,6 +224,15 @@ void MyChartWidget::paintBar(QPainter& painter, const ChartData& chartData, cons
         painter.drawRect(assist2Rect);
 
         // 画色块
+        const ColorData* colorData = nullptr;
+        for (const auto& item : DataManager::getInstance()->m_assist2ColorDatas)
+        {
+            if (item.m_type == chartData.m_type && item.m_date == chartData.m_date)
+            {
+                colorData = &item;
+                break;
+            }
+        }
         int right = assist2Rect.right();
         if (colorData && colorData->oneInclude)
         {

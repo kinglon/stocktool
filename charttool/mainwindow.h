@@ -41,8 +41,14 @@ private slots:
     // 加载辅助能量2数据
     void onLoadAssist2DataButtonClicked();
 
-    // 加载色块数据
+    // 加载主色块数据
     void onLoadColorDataButtonClicked();
+
+    // 加载辅1色块数据
+    void onLoadAssist1ColorDataButtonClicked();
+
+    // 加载辅2色块数据
+    void onLoadAssist2ColorDataButtonClicked();
 
     void onSaveImageButtonClicked();
 

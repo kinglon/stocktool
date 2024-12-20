@@ -94,6 +94,12 @@ public:
     // 辅助能量2数据
     QVector<ChartData> m_assist2Datas;
 
-    // 色块数据
+    // 主色块数据
     QVector<ColorData> m_colorDatas;
+
+    // 辅1色块数据
+    QVector<ColorData> m_assist1ColorDatas;
+
+    // 辅2色块数据
+    QVector<ColorData> m_assist2ColorDatas;
 };

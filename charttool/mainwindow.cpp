@@ -39,6 +39,8 @@ void MainWindow::initCtrls()
     connect(ui->loadAssist1DataButton, &QPushButton::clicked, this, &MainWindow::onLoadAssist1DataButtonClicked);
     connect(ui->loadAssist2DataButton, &QPushButton::clicked, this, &MainWindow::onLoadAssist2DataButtonClicked);
     connect(ui->loadColorDataButton, &QPushButton::clicked, this, &MainWindow::onLoadColorDataButtonClicked);
+    connect(ui->loadAssist1ColorDataButton, &QPushButton::clicked, this, &MainWindow::onLoadAssist1ColorDataButtonClicked);
+    connect(ui->loadAssist2ColorDataButton, &QPushButton::clicked, this, &MainWindow::onLoadAssist2ColorDataButtonClicked);
     connect(ui->saveImageButton, &QPushButton::clicked, this, &MainWindow::onSaveImageButtonClicked);
     connect(ui->addAvgLineButton, &QPushButton::clicked, this, &MainWindow::onAddAvgLineButtonClicked);
 }
@@ -250,6 +252,92 @@ void MainWindow::onLoadColorDataButtonClicked()
                 continue;
             }
             DataManager::getInstance()->m_colorDatas.append(colorData);
+        }
+        file.close();
+    }
+
+    if (m_myChartWidget)
+    {
+        m_myChartWidget->onDataChanged();
+    }
+}
+
+void MainWindow::onLoadAssist1ColorDataButtonClicked()
+{
+    QString oneIncludeString = ui->oneIncludeEdit->text();
+    QString twoIncludeString = ui->twoIncludeEdit->text();
+    if (oneIncludeString.isEmpty() || twoIncludeString.isEmpty())
+    {
+        UiUtil::showTip(QString::fromWCharArray(L"请填写正确的一宫二宫含内容"));
+        return;
+    }
+
+    QFileDialog fileDialog;
+    fileDialog.setWindowTitle(QString::fromWCharArray(L"选择文件"));
+    fileDialog.setNameFilters(QStringList() << "csv files (*.csv)");
+    if (fileDialog.exec() != QDialog::Accepted)
+    {
+        return;
+    }
+
+    QStringList selectedFiles = fileDialog.selectedFiles();
+    QFile file(selectedFiles[0]);
+    if (file.open(QIODevice::ReadOnly | QIODevice::Text))
+    {
+        DataManager::getInstance()->m_assist1ColorDatas.clear();
+        QTextStream in(&file);
+        while (!in.atEnd())
+        {
+            QString line = in.readLine();
+            ColorData colorData;
+            if (!parseColorDataLine(line, colorData, oneIncludeString, twoIncludeString))
+            {
+                continue;
+            }
+            DataManager::getInstance()->m_assist1ColorDatas.append(colorData);
+        }
+        file.close();
+    }
+
+    if (m_myChartWidget)
+    {
+        m_myChartWidget->onDataChanged();
+    }
+}
+
+void MainWindow::onLoadAssist2ColorDataButtonClicked()
+{
+    QString oneIncludeString = ui->oneIncludeEdit->text();
+    QString twoIncludeString = ui->twoIncludeEdit->text();
+    if (oneIncludeString.isEmpty() || twoIncludeString.isEmpty())
+    {
+        UiUtil::showTip(QString::fromWCharArray(L"请填写正确的一宫二宫含内容"));
+        return;
+    }
+
+    QFileDialog fileDialog;
+    fileDialog.setWindowTitle(QString::fromWCharArray(L"选择文件"));
+    fileDialog.setNameFilters(QStringList() << "csv files (*.csv)");
+    if (fileDialog.exec() != QDialog::Accepted)
+    {
+        return;
+    }
+
+    QStringList selectedFiles = fileDialog.selectedFiles();
+    QFile file(selectedFiles[0]);
+    if (file.open(QIODevice::ReadOnly | QIODevice::Text))
+    {
+        DataManager::getInstance()->m_assist2ColorDatas.clear();
+        QTextStream in(&file);
+        while (!in.atEnd())
+        {
+            QString line = in.readLine();
+            ColorData colorData;
+            if (!parseColorDataLine(line, colorData, oneIncludeString, twoIncludeString))
+            {
+                continue;
+            }
+            DataManager::getInstance()->m_assist2ColorDatas.append(colorData);
         }
         file.close();
     }

@@ -18,9 +18,9 @@
     <property name="geometry">
      <rect>
       <x>11</x>
-      <y>102</y>
+      <y>112</y>
       <width>641</width>
-      <height>421</height>
+      <height>411</height>
      </rect>
     </property>
     <property name="verticalScrollBarPolicy">
@@ -38,7 +38,7 @@
        <x>0</x>
        <y>0</y>
        <width>622</width>
-       <height>419</height>
+       <height>409</height>
       </rect>
      </property>
     </widget>
@@ -48,8 +48,8 @@
      <rect>
       <x>11</x>
       <y>11</y>
-      <width>641</width>
-      <height>86</height>
+      <width>658</width>
+      <height>91</height>
      </rect>
     </property>
     <layout class="QVBoxLayout" name="verticalLayout">
@@ -129,13 +129,13 @@
         <widget class="QLabel" name="label_3">
          <property name="minimumSize">
           <size>
-           <width>65</width>
+           <width>70</width>
            <height>0</height>
           </size>
          </property>
          <property name="maximumSize">
           <size>
-           <width>30</width>
+           <width>16777215</width>
            <height>16777215</height>
           </size>
          </property>
@@ -164,13 +164,13 @@
         <widget class="QLabel" name="label_4">
          <property name="minimumSize">
           <size>
-           <width>65</width>
+           <width>70</width>
            <height>0</height>
           </size>
          </property>
          <property name="maximumSize">
           <size>
-           <width>30</width>
+           <width>16777215</width>
            <height>16777215</height>
           </size>
          </property>
@@ -229,13 +229,13 @@
         <widget class="QLabel" name="label_5">
          <property name="minimumSize">
           <size>
-           <width>0</width>
+           <width>50</width>
            <height>0</height>
           </size>
          </property>
          <property name="maximumSize">
           <size>
-           <width>30</width>
+           <width>16777215</width>
            <height>16777215</height>
           </size>
          </property>
@@ -251,13 +251,13 @@
         <widget class="QLineEdit" name="oneIncludeEdit">
          <property name="minimumSize">
           <size>
-           <width>200</width>
+           <width>0</width>
            <height>0</height>
           </size>
          </property>
          <property name="maximumSize">
           <size>
-           <width>50</width>
+           <width>16777215</width>
            <height>16777215</height>
           </size>
          </property>
@@ -276,7 +276,7 @@
          </property>
          <property name="maximumSize">
           <size>
-           <width>30</width>
+           <width>16777215</width>
            <height>16777215</height>
           </size>
          </property>
@@ -292,18 +292,32 @@
         <widget class="QLineEdit" name="twoIncludeEdit">
          <property name="minimumSize">
           <size>
-           <width>200</width>
+           <width>0</width>
            <height>0</height>
           </size>
          </property>
          <property name="maximumSize">
           <size>
-           <width>50</width>
+           <width>16777215</width>
            <height>16777215</height>
           </size>
          </property>
          <property name="text">
           <string/>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QPushButton" name="addAvgLineButton">
+         <property name="text">
+          <string>添加均线</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QPushButton" name="saveImageButton">
+         <property name="text">
+          <string>保存图片</string>
          </property>
         </widget>
        </item>
@@ -340,42 +354,42 @@
        <item>
         <widget class="QPushButton" name="loadDataButton">
          <property name="text">
-          <string>加载数据</string>
+          <string>加主数据</string>
          </property>
         </widget>
        </item>
        <item>
         <widget class="QPushButton" name="loadAssist1DataButton">
          <property name="text">
-          <string>加载辅助1数据</string>
+          <string>加辅1数据</string>
          </property>
         </widget>
        </item>
        <item>
         <widget class="QPushButton" name="loadAssist2DataButton">
          <property name="text">
-          <string>加载辅助2数据</string>
+          <string>加辅2数据</string>
          </property>
         </widget>
        </item>
        <item>
         <widget class="QPushButton" name="loadColorDataButton">
          <property name="text">
-          <string>加载色块数据</string>
+          <string>加主色块</string>
          </property>
         </widget>
        </item>
        <item>
-        <widget class="QPushButton" name="addAvgLineButton">
+        <widget class="QPushButton" name="loadAssist1ColorDataButton">
          <property name="text">
-          <string>添加均线</string>
+          <string>加辅1色块</string>
          </property>
         </widget>
        </item>
        <item>
-        <widget class="QPushButton" name="saveImageButton">
+        <widget class="QPushButton" name="loadAssist2ColorDataButton">
          <property name="text">
-          <string>保存图片</string>
+          <string>加辅2色块</string>
          </property>
         </widget>
        </item>
