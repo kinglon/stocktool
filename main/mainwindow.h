@@ -27,6 +27,8 @@ private slots:
 
     void onFilterDataButtonClicked();
 
+    void onFilterHourDataButtonClicked();
+
     void onDayCompareButtonClicked();
 
     void onMonthCompareButtonClicked();
@@ -39,6 +41,9 @@ private:
 
     // 控制是否允许操作按钮
     void enableOperate(bool enable);
+
+    // filterHour 筛选已午未
+    void doFilter(bool filterHour);
 
 private:
     Ui::MainWindow *ui;

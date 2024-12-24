@@ -23,17 +23,24 @@ void DataFilter::run()
     int lastMonth = -1;
     for (QDate date=m_beginDate; date < m_endDate; date = date.addDays(1))
     {
-        if (m_onlyFilterToMonth)
+        if (m_onlyFilterHour)
         {
-            if (date.month() != lastMonth)
-            {
-                lastMonth = date.month();
-                filterOnlyToMonth(date);
-            }
+            filterOnlyHourData(date);
         }
         else
         {
-            filterNotOnlyToMonth(date);
+            if (m_onlyFilterToMonth)
+            {
+                if (date.month() != lastMonth)
+                {
+                    lastMonth = date.month();
+                    filterOnlyToMonth(date);
+                }
+            }
+            else
+            {
+                filterNotOnlyToMonth(date);
+            }
         }
         emit oneDayFinish();
     }
@@ -169,6 +176,25 @@ void DataFilter::filterNotOnlyToMonth(QDate date)
     // 筛选未时数据
     QVector<StockData> weiHourStockDatas;
     filterHourData(date, wuHourStockDatas, STOCK_DATA_HOUR_WEI, WEI_HOUR_FILTER_CONDTION, weiHourStockDatas);
+    m_stockDatas.append(weiHourStockDatas);
+}
+
+void DataFilter::filterOnlyHourData(QDate date)
+{
+    // 筛选已时数据
+    QVector<StockData> yiHourStockDatas;
+    filterHourData(date, STOCK_DATA_HOUR_YI, YI_HOUR_FILTER_CONDTION, yiHourStockDatas);
+    m_stockDatas.append(yiHourStockDatas);
+
+    // 筛选午时数据
+    QVector<StockData> wuHourStockDatas;
+    filterHourData(date, STOCK_DATA_HOUR_WU, WU_HOUR_FILTER_CONDTION, wuHourStockDatas);
+    m_stockDatas.append(wuHourStockDatas);
+
+
+    // 筛选未时数据
+    QVector<StockData> weiHourStockDatas;
+    filterHourData(date, STOCK_DATA_HOUR_WEI, WEI_HOUR_FILTER_CONDTION, weiHourStockDatas);
     m_stockDatas.append(weiHourStockDatas);
 }
 
@@ -413,6 +439,23 @@ void DataFilter::filterSecondDayData(QDate date, const QVector<StockData>& daySt
 
 void DataFilter::filterHourData(QDate date, const QVector<StockData>& matchStockDatas, int dataType, int filterType, QVector<StockData>& hourStockDatas)
 {
+    QVector<StockData> tempHourStockDatas;
+    filterHourData(date, dataType, filterType, tempHourStockDatas);
+    for (const auto& currentStockData : tempHourStockDatas)
+    {
+        for (const auto& stockData : matchStockDatas)
+        {
+            if (currentStockData.m_stockName == stockData.m_stockName)
+            {
+                hourStockDatas.append(currentStockData);
+                break;
+            }
+        }
+    }
+}
+
+void DataFilter::filterHourData(QDate date, int dataType, int filterType, QVector<StockData>& hourStockDatas)
+{
     QDateTime beginSearchDateTime;
     beginSearchDateTime.setDate(date);
     qint64 beginSearchTime = beginSearchDateTime.toSecsSinceEpoch();
@@ -441,14 +484,7 @@ void DataFilter::filterHourData(QDate date, const QVector<StockData>& matchStock
 
         if (ok)
         {
-            for (const auto& stockData : matchStockDatas)
-            {
-                if (currentStockData.m_stockName == stockData.m_stockName)
-                {
-                    hourStockDatas.append(currentStockData);
-                    break;
-                }
-            }
+            hourStockDatas.append(currentStockData);
         }
 
         left++;
@@ -660,18 +696,22 @@ FilterDataController::FilterDataController(QObject *parent)
 
 }
 
-void FilterDataController::run(bool onlyFilterToMonth, QDate beginDate, QDate endDate)
+void FilterDataController::run(bool onlyFilterHour, bool onlyFilterToMonth, QDate beginDate, QDate endDate)
 {
-    QString savePath = QString::fromStdWString(CImPath::GetDataPath()) + QString::fromWCharArray(L"明细\\");
-    if (!MergeDataController::removeDir(savePath))
+    if (!onlyFilterHour)
     {
-        emit printLog(QString::fromWCharArray(L"无法删除明细目录，请先关闭已打开的文件。"));
-        emit runFinish();
-        return;
+        QString savePath = QString::fromStdWString(CImPath::GetDataPath()) + QString::fromWCharArray(L"明细\\");
+        if (!MergeDataController::removeDir(savePath))
+        {
+            emit printLog(QString::fromWCharArray(L"无法删除明细目录，请先关闭已打开的文件。"));
+            emit runFinish();
+            return;
+        }
     }
 
     emit printLog(QString::fromWCharArray(L"开始筛选数据"));
 
+    m_onlyFilterHour = onlyFilterHour;
     m_onlyFilterToMonth = onlyFilterToMonth;
     m_totalDays = beginDate.daysTo(endDate);
     if (m_totalDays <= 0)
@@ -694,6 +734,7 @@ void FilterDataController::run(bool onlyFilterToMonth, QDate beginDate, QDate en
         }
 
         DataFilter* dataFilter = new DataFilter();
+        dataFilter->m_onlyFilterHour = onlyFilterHour;
         dataFilter->m_onlyFilterToMonth = onlyFilterToMonth;
         dataFilter->m_beginDate = begin;
         dataFilter->m_endDate = end;
@@ -746,8 +787,15 @@ void FilterDataController::onFilterRunFinish(DataFilter* dataFilter)
         emit printLog(QString::fromWCharArray(L"筛选数据完成，共%1条").arg(m_stockDatas.size()));
         if (!m_stockDatas.isEmpty())
         {
-            saveStockData();
-            saveStockDataDetail();
+            if (!m_onlyFilterHour)
+            {
+                saveStockData();
+                saveStockDataDetail();
+            }
+            else
+            {
+                saveStockHourDataSummaryInfo();
+            }
             QDesktopServices::openUrl(QUrl::fromLocalFile(QString::fromStdWString(CImPath::GetDataPath())));
         }
         emit runFinish();
@@ -1056,6 +1104,113 @@ void FilterDataController::saveStockDataDetail(int begin, int end)
     {
         qCritical("failed to open the result detail file");
     }
+}
+
+void FilterDataController::saveStockHourDataSummaryInfo()
+{
+    emit printLog(QString::fromWCharArray(L"开始保存数据"));
+
+    std::sort(m_stockDatas.begin(), m_stockDatas.end(), [](const StockData& a, const StockData& b) {
+        return a.m_beginTime < b.m_beginTime
+                || (a.m_beginTime == b.m_beginTime && a.hourToInt() < b.hourToInt())
+                || (a.m_beginTime == b.m_beginTime && a.hourToInt() == b.hourToInt() && a.m_stockName < b.m_stockName);
+    });
+
+    QString result; // 明细
+    QString summaryResult; // 个数统计
+    qint64 beginTime = 0;
+    QString hour;
+    QString stockName;
+    int count = 0;
+    for (const auto& stockData : m_stockDatas)
+    {
+        // 周末不输出
+        int dayOfWeek = QDateTime::fromSecsSinceEpoch(stockData.m_beginTime).date().dayOfWeek();
+        if (dayOfWeek == 6 || dayOfWeek == 7)
+        {
+            continue;
+        }
+
+        // 新的一天，要换行
+        if (stockData.m_beginTime != beginTime)
+        {
+            if (!result.isEmpty())
+            {
+                result.append("\r\n\r\n");
+            }
+
+            if (!summaryResult.isEmpty())
+            {
+                summaryResult += QString::number(count);
+                summaryResult.append("\r\n\r\n");
+            }
+
+            QString dateTimeStr = QDateTime::fromSecsSinceEpoch(stockData.m_beginTime).toString(QString::fromWCharArray(L"yyyy年M月d日"));
+            result += dateTimeStr + "\r\n";
+            summaryResult += dateTimeStr + "\r\n";
+            beginTime = stockData.m_beginTime;
+            hour = "";
+            stockName = "";
+            count = 0;
+        }
+
+        if (stockData.m_hour != hour)
+        {
+            if (!hour.isEmpty())
+            {
+                result += "\r\n";
+                summaryResult += QString::number(count) + "\r\n";
+            }
+
+            appendSpaceChar(result, 14);
+            result += stockData.m_hour + ": ";
+
+            appendSpaceChar(summaryResult, 14);
+            summaryResult += stockData.m_hour + ": ";
+
+            hour = stockData.m_hour;
+            stockName = "";
+            count = 0;
+        }
+
+        if (stockData.m_stockName != stockName)
+        {
+            result += stockData.m_stockName + " ";
+            count += 1;
+            stockName = stockData.m_stockName;
+        }
+    }
+
+    if (!hour.isEmpty())
+    {
+        summaryResult += QString::number(count);
+    }
+
+    QString resultFilePath = QString::fromStdWString(CImPath::GetDataPath()) + QString::fromWCharArray(L"巳午未明细.txt");
+    QFile resultFile(resultFilePath);
+    if (resultFile.open(QFile::WriteOnly))
+    {
+        resultFile.write(result.toUtf8());
+        resultFile.close();
+    }
+    else
+    {
+        qCritical("failed to open the yi wu wei detail file");
+    }
+
+    QString summaryFilePath = QString::fromStdWString(CImPath::GetDataPath()) + QString::fromWCharArray(L"巳午未数字统计.txt");
+    QFile summaryFile(summaryFilePath);
+    if (summaryFile.open(QFile::WriteOnly))
+    {
+        summaryFile.write(summaryResult.toUtf8());
+        summaryFile.close();
+    }
+    else
+    {
+        qCritical("failed to open the summary result file");
+    }
+
+    emit printLog(QString::fromWCharArray(L"保存数据完成"));
 }
 
 void FilterDataController::appendSpaceChar(QString& result, int count)

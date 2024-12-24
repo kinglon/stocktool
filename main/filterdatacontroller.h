@@ -28,6 +28,8 @@ private:
 
     void filterNotOnlyToMonth(QDate date);
 
+    void filterOnlyHourData(QDate date);
+
     void filterYearData(QDate date, bool useLunarTime, QVector<StockData>& yearStockDatas);
 
     void filterMonthData(QDate date, bool useLunarTime, const QVector<StockData>& yearStockDatas, QVector<StockData>& monthStockDatas);
@@ -37,6 +39,9 @@ private:
     void filterSecondDayData(QDate date, const QVector<StockData>& dayStockDatas, QVector<StockData>& secondDayStockDatas);
 
     void filterHourData(QDate date, const QVector<StockData>& dayStockDatas, int dataType, int filterType, QVector<StockData>& hourStockDatas);
+
+    void filterHourData(QDate date, int dataType, int filterType, QVector<StockData>& hourStockDatas);
+
 
     // 检查是否满足条件
     bool checkIfStockDataOk(StockData stockData, const FilterCondition& filterCondition);
@@ -48,6 +53,8 @@ private:
     bool haveWordWithoutKuohao(QString word, QString data[4]);    
 
 public:
+    bool m_onlyFilterHour = false;
+
     bool m_onlyFilterToMonth = true;
 
     QDate m_beginDate;
@@ -64,7 +71,7 @@ public:
     explicit FilterDataController(QObject *parent = nullptr);
 
 public:
-    void run(bool onlyFilterToMonth, QDate beginDate, QDate endDate);
+    void run(bool onlyFilterHour, bool onlyFilterToMonth, QDate beginDate, QDate endDate);
 
 signals:
     void printLog(QString content);
@@ -83,6 +90,8 @@ private:
 
     void saveStockDataDetail(int begin, int end);
 
+    void saveStockHourDataSummaryInfo();
+
     void appendSpaceChar(QString& result, int count);
 
     StockData findYearStockDataByMonth(const StockData& monthStockData);
@@ -94,6 +103,8 @@ private:
     void appendDayStockData(int prefixSpaceCount, QString& result, const StockData& stockData);
 
 private:
+    bool m_onlyFilterHour = false;
+
     bool m_onlyFilterToMonth = false;
 
     QVector<DataFilter*> m_dataFilters;

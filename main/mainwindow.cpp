@@ -50,6 +50,7 @@ void MainWindow::initCtrls()
 
     connect(ui->loadDataButton, &QPushButton::clicked, this, &MainWindow::onLoadDataButtonClicked);
     connect(ui->filterDataButton, &QPushButton::clicked, this, &MainWindow::onFilterDataButtonClicked);
+    connect(ui->filterHourDataButton, &QPushButton::clicked, this, &MainWindow::onFilterHourDataButtonClicked);
     connect(ui->dayCompareButton, &QPushButton::clicked, this, &MainWindow::onDayCompareButtonClicked);
     connect(ui->monthCompareButton, &QPushButton::clicked, this, &MainWindow::onMonthCompareButtonClicked);
 }
@@ -58,6 +59,7 @@ void MainWindow::enableOperate(bool enable)
 {
     ui->loadDataButton->setEnabled(enable);
     ui->filterDataButton->setEnabled(enable);
+    ui->filterHourDataButton->setEnabled(enable);
     ui->dayCompareButton->setEnabled(enable);
     ui->monthCompareButton->setEnabled(enable);
 }
@@ -118,6 +120,17 @@ void MainWindow::onLoadDataButtonClicked()
 
 void MainWindow::onFilterDataButtonClicked()
 {
+    doFilter(false);
+}
+
+void MainWindow::onFilterHourDataButtonClicked()
+{
+    doFilter(true);
+}
+
+
+void MainWindow::doFilter(bool filterHour)
+{
     if (!DataManager::getInstance()->hasData())
     {
         UiUtil::showTip(QString::fromWCharArray(L"请先加载数据"));
@@ -155,7 +168,7 @@ void MainWindow::onFilterDataButtonClicked()
         enableOperate(true);
     });
     enableOperate(false);
-    controller->run(onlyFilterToMonth, beginDate, endDate);
+    controller->run(filterHour, onlyFilterToMonth, beginDate, endDate);
 }
 
 void MainWindow::onDayCompareButtonClicked()

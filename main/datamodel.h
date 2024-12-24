@@ -58,6 +58,28 @@ public:
 
     // 数据，4个字段，又称一二三四宫
     QString m_data[DATA_FIELD_LENGTH];
+
+public:
+    // 把时中文变成数字，方便排序
+    int hourToInt() const
+    {
+        if (m_hour == QString::fromWCharArray(L"巳"))
+        {
+            return 1;
+        }
+        else if (m_hour == QString::fromWCharArray(L"午"))
+        {
+            return 2;
+        }
+        else if (m_hour == QString::fromWCharArray(L"未"))
+        {
+            return 3;
+        }
+        else
+        {
+            return 100;
+        }
+    }
 };
 
 #endif // DATAMODEL_H
