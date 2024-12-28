@@ -36,7 +36,7 @@
        <item>
         <widget class="QLineEdit" name="rootPathEdit">
          <property name="readOnly">
-          <bool>true</bool>
+          <bool>false</bool>
          </property>
         </widget>
        </item>
@@ -44,6 +44,13 @@
         <widget class="QPushButton" name="selectRootPathButton">
          <property name="text">
           <string>选择目录</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QPushButton" name="scanStockButton">
+         <property name="text">
+          <string>扫描股票</string>
          </property>
         </widget>
        </item>
@@ -245,12 +252,12 @@
      <item>
       <layout class="QHBoxLayout" name="horizontalLayout_2">
        <item>
-        <widget class="QLineEdit" name="stockFolderEdit"/>
+        <widget class="QLineEdit" name="stockBrowserEdit"/>
        </item>
        <item>
-        <widget class="QPushButton" name="stockFolderButton">
+        <widget class="QPushButton" name="stockBrowseButton">
          <property name="text">
-          <string>查找股票文件夹</string>
+          <string>输入股票代码或名字</string>
          </property>
         </widget>
        </item>
@@ -268,12 +275,12 @@
         </spacer>
        </item>
        <item>
-        <widget class="QLineEdit" name="stockBrowserEdit"/>
+        <widget class="QLineEdit" name="stockFolderEdit"/>
        </item>
        <item>
-        <widget class="QPushButton" name="stockBrowseButton">
+        <widget class="QPushButton" name="stockFolderButton">
          <property name="text">
-          <string>输入股票代码或名字</string>
+          <string>查找股票文件夹</string>
          </property>
         </widget>
        </item>
@@ -288,7 +295,7 @@
         <enum>QLayout::SetDefaultConstraint</enum>
        </property>
        <item>
-        <widget class="QListWidget" name="stockFolderList">
+        <widget class="QListWidget" name="stockBrowserList">
          <property name="sizePolicy">
           <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
            <horstretch>0</horstretch>
@@ -304,7 +311,7 @@
         </widget>
        </item>
        <item>
-        <widget class="QListWidget" name="stockBrowserList">
+        <widget class="QListWidget" name="stockFolderList">
          <property name="sizePolicy">
           <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
            <horstretch>0</horstretch>

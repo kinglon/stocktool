@@ -29,6 +29,7 @@ void MainWindow::initCtrls()
     QDate now = QDate::currentDate();
     ui->originDateEdit->setDate(now);
 
+    ui->rootPathEdit->setText(SettingManager::getInstance()->m_stockRootPath);
     ui->afterYearEdit->setText(QString::number(SettingManager::getInstance()->m_afterYear));
     ui->afterMonthEdit->setText(QString::number(SettingManager::getInstance()->m_afterMonth));
     ui->afterDayEdit->setText(QString::number(SettingManager::getInstance()->m_afterDay));
@@ -39,6 +40,7 @@ void MainWindow::initCtrls()
     ui->beforeHourEdit->setText(QString::number(SettingManager::getInstance()->m_beforeHour));
 
     connect(ui->selectRootPathButton, &QPushButton::clicked, this, &MainWindow::onSelectRootPathButtonClicked);
+    connect(ui->scanStockButton, &QPushButton::clicked, this, &MainWindow::onScanStockButtonClicked);
     connect(ui->stockFolderButton, &QPushButton::clicked, this, &MainWindow::onStockFolderButtonClicked);
     connect(ui->stockBrowseButton, &QPushButton::clicked, this, &MainWindow::onStockBrowseButtonClicked);
     connect(ui->stockFolderList, &QListWidget::itemClicked, this, [](QListWidgetItem *item) {
@@ -57,11 +59,24 @@ void MainWindow::onSelectRootPathButtonClicked()
     }
 
     ui->rootPathEdit->setText(rootDir);
+}
+
+void MainWindow::onScanStockButtonClicked()
+{
+    QString rootPath = ui->rootPathEdit->text();
+    if (rootPath.isEmpty())
+    {
+        UiUtil::showTip(QString::fromWCharArray(L"目录不能为空"));
+        return;
+    }
+
+    SettingManager::getInstance()->m_stockRootPath = rootPath;
+    SettingManager::getInstance()->save();
 
     DataManager::getInstance()->m_stocks.clear();
 
-    QDir dir(rootDir);
     QDir::Filters filters = QDir::Dirs | QDir::NoDotAndDotDot;
+    QDir dir(rootPath);
     QFileInfoList fileInfoList = dir.entryInfoList(filters);
     QStringList suffixes;
     suffixes.append(QString::fromWCharArray(L"年.csv"));
@@ -103,6 +118,7 @@ void MainWindow::onSelectRootPathButtonClicked()
                         stock.m_stockName = subFileInfo.fileName();
                         stock.m_stockId = getStockId(stock.m_stockPath);
                         DataManager::getInstance()->m_stocks.append(stock);
+                        break;
                     }
                 }
             }

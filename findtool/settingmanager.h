@@ -33,4 +33,6 @@ public:
     int m_afterDay = 0;
 
     int m_afterHour = 0;
+
+    QString m_stockRootPath;
 };

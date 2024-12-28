@@ -27,6 +27,8 @@ private:
 private slots:
     void onSelectRootPathButtonClicked();
 
+    void onScanStockButtonClicked();
+
     void onStockFolderButtonClicked();
 
     void onStockBrowseButtonClicked();

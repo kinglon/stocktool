@@ -47,6 +47,10 @@ void SettingManager::load()
     m_afterMonth = root["afterMonth"].toInt();
     m_afterDay = root["afterDay"].toInt();
     m_afterHour = root["afterHour"].toInt();
+    if (root.contains("stockRootPath"))
+    {
+        m_stockRootPath = root["stockRootPath"].toString();
+    }
 }
 
 void SettingManager::save()
@@ -61,6 +65,7 @@ void SettingManager::save()
     root["afterMonth"] = m_afterMonth;
     root["afterDay"] = m_afterDay;
     root["afterHour"] = m_afterHour;
+    root["stockRootPath"] = m_stockRootPath;
 
     QJsonDocument jsonDocument(root);
     QByteArray jsonData = jsonDocument.toJson(QJsonDocument::Indented);
