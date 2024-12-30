@@ -41,6 +41,7 @@ void MainWindow::initCtrls()
     connect(ui->loadColorDataButton, &QPushButton::clicked, this, &MainWindow::onLoadColorDataButtonClicked);
     connect(ui->loadAssist1ColorDataButton, &QPushButton::clicked, this, &MainWindow::onLoadAssist1ColorDataButtonClicked);
     connect(ui->loadAssist2ColorDataButton, &QPushButton::clicked, this, &MainWindow::onLoadAssist2ColorDataButtonClicked);
+    connect(ui->loadHourDataButton, &QPushButton::clicked, this, &MainWindow::onLoadHourDataButtonClicked);
     connect(ui->saveImageButton, &QPushButton::clicked, this, &MainWindow::onSaveImageButtonClicked);
     connect(ui->addAvgLineButton, &QPushButton::clicked, this, &MainWindow::onAddAvgLineButtonClicked);
 }
@@ -123,7 +124,7 @@ void MainWindow::onLoadDataButtonClicked()
     }
 
     if (m_myChartWidget)
-    {
+    {        
         m_myChartWidget->setMaxCount(maxCount);
         m_myChartWidget->onDataChanged();
     }
@@ -344,6 +345,90 @@ void MainWindow::onLoadAssist2ColorDataButtonClicked()
 
     if (m_myChartWidget)
     {
+        m_myChartWidget->onDataChanged();
+    }
+}
+
+void MainWindow::onLoadHourDataButtonClicked()
+{
+    bool ok = false;
+    int maxCount = ui->hourCountEdit->text().toInt(&ok);
+    if (!ok || maxCount <= 0)
+    {
+        UiUtil::showTip(QString::fromWCharArray(L"请填写正确的满柱数"));
+        return;
+    }
+
+    QFileDialog fileDialog;
+    fileDialog.setWindowTitle(QString::fromWCharArray(L"选择文件"));
+    fileDialog.setNameFilters(QStringList() << "text files (*.txt)");
+    if (fileDialog.exec() != QDialog::Accepted)
+    {
+        return;
+    }
+
+    QStringList selectedFiles = fileDialog.selectedFiles();
+    QFile file(selectedFiles[0]);
+    if (file.open(QIODevice::ReadOnly | QIODevice::Text))
+    {
+        DataManager::getInstance()->m_hourDatas.clear();
+        QTextStream in(&file);
+        in.setCodec("UTF-8");
+        HourData* hourData = nullptr;
+        while (!in.atEnd())
+        {
+            QString line = in.readLine();
+            if (line.indexOf(QString::fromWCharArray(L"日")) > 0)
+            {
+                QDateTime dt = QDateTime::fromString(line, QString::fromWCharArray(L"yyyy年M月d日"));
+                if (!dt.isValid())
+                {
+                    continue;
+                }
+
+                if (hourData)
+                {
+                    DataManager::getInstance()->m_hourDatas.append(*hourData);
+                    delete hourData;
+                }
+
+                hourData = new HourData();
+                hourData->m_date = dt.toSecsSinceEpoch();
+                continue;
+            }
+
+            if (hourData)
+            {
+                QStringList hourParts = line.split(":");
+                if (hourParts.size() == 2 )
+                {
+                    if (hourParts[0].indexOf(QString::fromWCharArray(L"巳")) >= 0)
+                    {
+                        hourData->m_siCount = hourParts[1].toUInt();
+                    }
+                    else if (hourParts[0].indexOf(QString::fromWCharArray(L"午")) >= 0)
+                    {
+                        hourData->m_wuCount = hourParts[1].toUInt();
+                    }
+                    else if (hourParts[0].indexOf(QString::fromWCharArray(L"未")) >= 0)
+                    {
+                        hourData->m_weiCount = hourParts[1].toUInt();
+                    }
+                }
+            }
+        }
+
+        if (hourData)
+        {
+            DataManager::getInstance()->m_hourDatas.append(*hourData);
+            delete hourData;
+        }
+        file.close();
+    }
+
+    if (m_myChartWidget)
+    {
+        m_myChartWidget->m_hourCount = maxCount;
         m_myChartWidget->onDataChanged();
     }
 }

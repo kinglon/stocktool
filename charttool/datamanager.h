@@ -74,6 +74,22 @@ public:
     bool twoInclude = false;
 };
 
+class HourData
+{
+public:
+    // 日期的时间戳，单位秒
+    qint64 m_date = 0;
+
+    // 巳个数
+    int m_siCount = 0;
+
+    // 午个数
+    int m_wuCount = 0;
+
+    // 未个数
+    int m_weiCount = 0;
+};
+
 class DataManager
 {
 protected:
@@ -102,4 +118,7 @@ public:
 
     // 辅2色块数据
     QVector<ColorData> m_assist2ColorDatas;
+
+    // 时数据
+    QVector<HourData> m_hourDatas;
 };

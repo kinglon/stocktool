@@ -50,6 +50,9 @@ private slots:
     // 加载辅2色块数据
     void onLoadAssist2ColorDataButtonClicked();
 
+    // 加载时数据
+    void onLoadHourDataButtonClicked();
+
     void onSaveImageButtonClicked();
 
     void onAddAvgLineButtonClicked();

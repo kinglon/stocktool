@@ -5,10 +5,10 @@
 #include "datamanager.h"
 
 // 一行的高度
-#define LINE_HEIGHT     26
+#define LINE_HEIGHT     36
 
 // 柱状图右边padding
-#define BAR_RIGHT_PADDING 55
+#define BAR_RIGHT_PADDING 100
 
 // 柱状图上边padding
 #define BAR_TOP_PADDING 3
@@ -189,6 +189,48 @@ void MyChartWidget::paintBar(QPainter& painter, const ChartData& chartData, cons
         painter.drawRect(color2Rect);
     }
 
+    // 画时柱状图
+    if (chartData.m_type == CHART_DATA_TYPE_DAY)
+    {
+        QRect hourFrameRect(right, mainRect.top(), 2 * mainRect.height(), mainRect.height());
+        painter.setBrush(Qt::transparent);
+        painter.setPen(RGB_RED);
+        painter.drawRect(hourFrameRect);
+
+        const HourData* hourData = nullptr;
+        for (const auto& item : DataManager::getInstance()->m_hourDatas)
+        {
+            if (item.m_date == chartData.m_date)
+            {
+                hourData = &item;
+                break;
+            }
+        }
+
+        if (hourData)
+        {
+            int leftRightPadding = 4;
+            int hourMaxWidth = hourFrameRect.width() - 2*leftRightPadding;
+            int hourHeight = 1;
+            int space = (mainRect.height() - 3*hourHeight) / 4;
+
+            int width = getHourBarWidth(hourMaxWidth, hourData->m_siCount);
+            int top = mainRect.top()+space;
+            QRect siRect(right+leftRightPadding, top, width, hourHeight);
+            painter.drawRect(siRect);
+
+            width = getHourBarWidth(hourMaxWidth, hourData->m_wuCount);
+            top += hourHeight + space;
+            QRect wuRect(right+leftRightPadding, top, width, hourHeight);
+            painter.drawRect(wuRect);
+
+            width = getHourBarWidth(hourMaxWidth, hourData->m_weiCount);
+            top += hourHeight + space;
+            QRect weiRect(right+leftRightPadding, top, width, hourHeight);
+            painter.drawRect(weiRect);
+        }
+    }
+
     // 画辅助能量柱2
     const ChartData* assistData2 = nullptr;
     for (const auto& item : DataManager::getInstance()->m_assist2Datas)
@@ -252,6 +294,17 @@ void MyChartWidget::paintBar(QPainter& painter, const ChartData& chartData, cons
             painter.drawRect(color2Rect);
         }
     }
+}
+
+int MyChartWidget::getHourBarWidth(int maxWidth, int count)
+{
+    if (count >= m_hourCount)
+    {
+        return maxWidth;
+    }
+
+    int width = (count*1.0f/m_hourCount) * maxWidth;
+    return qMax(width, 1);
 }
 
 void MyChartWidget::mousePressEvent(QMouseEvent *event)

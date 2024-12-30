@@ -27,6 +27,12 @@ protected:
 private:
     void paintBar(QPainter& painter, const ChartData& chartData, const QRect& rect);
 
+    int getHourBarWidth(int maxWidth, int count);
+
+public:
+    // 时，满柱
+    int m_hourCount = 30;
+
 private:
     // 主能量柱，满柱
     int m_maxCount = 30;
