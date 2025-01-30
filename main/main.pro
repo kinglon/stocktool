@@ -24,7 +24,9 @@ SOURCES += \
     mainwindow.cpp \
     mergedatacontroller.cpp \
     monthmergedatacontroller.cpp \
+    notlossfilterdialog.cpp \
     settingmanager.cpp \
+    stockdatautil.cpp \
     uiutil.cpp
 
 HEADERS += \
@@ -43,11 +45,14 @@ HEADERS += \
     mainwindow.h \
     mergedatacontroller.h \
     monthmergedatacontroller.h \
+    notlossfilterdialog.h \
     settingmanager.h \
+    stockdatautil.h \
     uiutil.h
 
 FORMS += \
-    mainwindow.ui
+    mainwindow.ui \
+    notlossfilterdialog.ui
 
 # Enable PDB generation
 QMAKE_CFLAGS_RELEASE += /Zi

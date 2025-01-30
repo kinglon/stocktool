@@ -29,6 +29,8 @@ private slots:
 
     void onFilterHourDataButtonClicked();
 
+    void onNotLossFilterButtonClicked();
+
     void onDayCompareButtonClicked();
 
     void onMonthCompareButtonClicked();
@@ -47,6 +49,8 @@ private:
 
 private:
     Ui::MainWindow *ui;
+
+    QString m_loadDataPath;
 
     QShortcut* m_ctrlDShortcut = nullptr;    
 };

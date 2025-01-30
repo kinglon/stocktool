@@ -55,6 +55,8 @@ int main(int argc, char *argv[])
     g_dllLog->SetLogLevel((ELogLevel)nLogLevel);
     originalHandler = qInstallMessageHandler(logToFile);
 
+    qputenv("QT_FONT_DPI", "100");
+
     QApplication a(argc, argv);    
 
     MainWindow w;

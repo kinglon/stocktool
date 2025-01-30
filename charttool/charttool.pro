@@ -9,6 +9,7 @@ CONFIG += c++17
 #DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000    # disables all the APIs deprecated before Qt 6.0.0
 
 SOURCES += \
+    ../main/stockdatautil.cpp \
     Utility/DumpUtil.cpp \
     Utility/IcrCriticalSection.cpp \
     Utility/ImCharset.cpp \
@@ -22,6 +23,7 @@ SOURCES += \
     uiutil.cpp
 
 HEADERS += \
+    ../main/stockdatautil.h \
     Utility/DumpUtil.h \
     Utility/IcrCriticalSection.h \
     Utility/ImCharset.h \

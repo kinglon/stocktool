@@ -23,28 +23,87 @@ void DataFilter::run()
     int lastMonth = -1;
     for (QDate date=m_beginDate; date < m_endDate; date = date.addDays(1))
     {
-        if (m_onlyFilterHour)
+        if (m_notLossFilter)
         {
-            filterOnlyHourData(date);
+            filterByNotLoss(date);
         }
         else
         {
-            if (m_onlyFilterToMonth)
+            if (m_onlyFilterHour)
             {
-                if (date.month() != lastMonth)
-                {
-                    lastMonth = date.month();
-                    filterOnlyToMonth(date);
-                }
+                filterOnlyHourData(date);
             }
             else
             {
-                filterNotOnlyToMonth(date);
+                if (m_onlyFilterToMonth)
+                {
+                    if (date.month() != lastMonth)
+                    {
+                        lastMonth = date.month();
+                        filterOnlyToMonth(date);
+                    }
+                }
+                else
+                {
+                    filterNotOnlyToMonth(date);
+                }
             }
         }
         emit oneDayFinish();
     }
     emit runFinish(this);
+}
+
+void DataFilter::filterByNotLoss(QDate date)
+{
+    // 无损筛选：关键词筛选
+    QVector<StockData> emptyStockDatas;
+    QVector<StockData> stockDatas;
+    if (m_notLossFilterDataType == STOCK_DATA_YEAR)
+    {
+        filterYearData(date, true, true, stockDatas);
+    }
+    else if (m_notLossFilterDataType == STOCK_DATA_MONTH)
+    {
+        filterMonthData(date, true, true, emptyStockDatas, stockDatas);
+    }
+    else if (m_notLossFilterDataType == STOCK_DATA_DAY)
+    {
+        filterDayData(date, true, emptyStockDatas, stockDatas);
+    }
+    else if (m_notLossFilterDataType == STOCK_DATA_HOUR)
+    {
+        QVector<StockData> yiStockDatas;
+        filterHourData(date, true, STOCK_DATA_HOUR_YI, YI_HOUR_FILTER_CONDTION, yiStockDatas);
+
+        QVector<StockData> wuStockDatas;
+        filterHourData(date, true, STOCK_DATA_HOUR_WU, WU_HOUR_FILTER_CONDTION, wuStockDatas);
+
+        QVector<StockData> weiStockDatas;
+        filterHourData(date, true, STOCK_DATA_HOUR_WEI, WEI_HOUR_FILTER_CONDTION, weiStockDatas);
+
+        // 求交集
+        for (int i=0; i<yiStockDatas.size(); i++)
+        {
+            for (int j=0; j<wuStockDatas.size(); j++)
+            {
+                if (yiStockDatas[i].m_stockName == wuStockDatas[j].m_stockName)
+                {
+                    for (int k=0; k<weiStockDatas.size(); k++)
+                    {
+                        if (yiStockDatas[i].m_stockName == weiStockDatas[k].m_stockName)
+                        {
+                            stockDatas.append(yiStockDatas[i]);
+                            break;
+                        }
+                    }
+                    break;
+                }
+            }
+        }
+    }
+
+    m_stockDatas.append(stockDatas);
 }
 
 void DataFilter::filterOnlyToMonth(QDate date)
@@ -59,7 +118,7 @@ void DataFilter::filterOnlyToMonth(QDate date)
     }
     else
     {
-        filterYearData(date, true, yearStockDatas);
+        filterYearData(date, false, true, yearStockDatas);
     }
 
     if (yearStockDatas.empty())
@@ -69,7 +128,7 @@ void DataFilter::filterOnlyToMonth(QDate date)
 
     // 筛选月数据
     QVector<StockData> monthStockDatas;
-    filterMonthData(date, true, yearStockDatas, monthStockDatas);
+    filterMonthData(date, false, true, yearStockDatas, monthStockDatas);
     m_stockDatas.append(monthStockDatas);
 }
 
@@ -85,7 +144,7 @@ void DataFilter::filterNotOnlyToMonth(QDate date)
     }
     else
     {
-        filterYearData(date, false, yearStockDatas);
+        filterYearData(date, false, false, yearStockDatas);
     }
 
     if (yearStockDatas.empty())
@@ -101,7 +160,7 @@ void DataFilter::filterNotOnlyToMonth(QDate date)
     }
     else
     {
-        filterMonthData(date, false, yearStockDatas, monthStockDatas);
+        filterMonthData(date, false, false, yearStockDatas, monthStockDatas);
     }
     if (monthStockDatas.empty())
     {
@@ -117,7 +176,7 @@ void DataFilter::filterNotOnlyToMonth(QDate date)
     }
     else
     {
-        filterDayData(date, monthStockDatas, dayStockDatas);
+        filterDayData(date, false, monthStockDatas, dayStockDatas);
     }
     if (dayStockDatas.empty())
     {
@@ -183,18 +242,18 @@ void DataFilter::filterOnlyHourData(QDate date)
 {
     // 筛选已时数据
     QVector<StockData> yiHourStockDatas;
-    filterHourData(date, STOCK_DATA_HOUR_YI, YI_HOUR_FILTER_CONDTION, yiHourStockDatas);
+    filterHourData(date, false, STOCK_DATA_HOUR_YI, YI_HOUR_FILTER_CONDTION, yiHourStockDatas);
     m_stockDatas.append(yiHourStockDatas);
 
     // 筛选午时数据
     QVector<StockData> wuHourStockDatas;
-    filterHourData(date, STOCK_DATA_HOUR_WU, WU_HOUR_FILTER_CONDTION, wuHourStockDatas);
+    filterHourData(date, false, STOCK_DATA_HOUR_WU, WU_HOUR_FILTER_CONDTION, wuHourStockDatas);
     m_stockDatas.append(wuHourStockDatas);
 
 
     // 筛选未时数据
     QVector<StockData> weiHourStockDatas;
-    filterHourData(date, STOCK_DATA_HOUR_WEI, WEI_HOUR_FILTER_CONDTION, weiHourStockDatas);
+    filterHourData(date, false, STOCK_DATA_HOUR_WEI, WEI_HOUR_FILTER_CONDTION, weiHourStockDatas);
     m_stockDatas.append(weiHourStockDatas);
 }
 
@@ -224,7 +283,7 @@ int DataFilter::findIndex(const QVector<StockData>& stockDatas, qint64 beginSear
     return left;
 }
 
-void DataFilter::filterYearData(QDate date, bool useLunarTime, QVector<StockData>& yearStockDatas)
+void DataFilter::filterYearData(QDate date, bool notLossFilter, bool useLunarTime, QVector<StockData>& yearStockDatas)
 {
     // 从前1年开始(考虑到农历公历时间差)，找到开始筛选的数据点
     QDateTime beginSearchDateTime;
@@ -235,16 +294,53 @@ void DataFilter::filterYearData(QDate date, bool useLunarTime, QVector<StockData
     int left = findIndex(stockDatas, beginSearchTime);
 
     // 开始筛选
-    FilterCondition yearFilterCondition = SettingManager::getInstance()->m_filterCondition[YEAR_FILTER_CONDTION];
+    const FilterCondition& yearFilterCondition = SettingManager::getInstance()->m_filterCondition[YEAR_FILTER_CONDTION];
+    const FilterConditionV2& filterConditionV2 = SettingManager::getInstance()->m_filterConditionV2;
     QString year = date.toString("yyyy");
     while (left < stockDatas.length())
     {
         const StockData& currentStockData = stockDatas[left];
-        if (useLunarTime)
+        if (!notLossFilter)
+        {
+            if (useLunarTime)
+            {
+                if (currentStockData.m_lunarTime == year)
+                {
+                    if (StockDataUtil::checkIfStockDataOk(currentStockData, yearFilterCondition, m_matchAll))
+                    {
+                        yearStockDatas.append(currentStockData);
+                    }
+                }
+
+                if (currentStockData.m_lunarTime.toInt() > date.year())
+                {
+                    break;
+                }
+            }
+            else
+            {
+                QDateTime beginDateTime = QDateTime::fromSecsSinceEpoch(currentStockData.m_beginTime);
+                QString beginYear = beginDateTime.toString("yyyy");
+                QString endYear = QDateTime::fromSecsSinceEpoch(currentStockData.m_endTime).toString("yyyy");
+                if (beginYear == year || endYear == year)
+                {
+                    if (StockDataUtil::checkIfStockDataOk(currentStockData, yearFilterCondition, m_matchAll))
+                    {
+                        yearStockDatas.append(currentStockData);
+                    }
+                }
+
+                if (beginDateTime.date().year() > date.year())
+                {
+                    break;
+                }
+            }
+        }
+        else
         {
             if (currentStockData.m_lunarTime == year)
             {
-                if (checkIfStockDataOk(currentStockData, yearFilterCondition))
+                if (StockDataUtil::checkIfStockDataOkV2(currentStockData, filterConditionV2))
                 {
                     yearStockDatas.append(currentStockData);
                 }
@@ -255,30 +351,12 @@ void DataFilter::filterYearData(QDate date, bool useLunarTime, QVector<StockData
                 break;
             }
         }
-        else
-        {
-            QDateTime beginDateTime = QDateTime::fromSecsSinceEpoch(currentStockData.m_beginTime);
-            QString beginYear = beginDateTime.toString("yyyy");
-            QString endYear = QDateTime::fromSecsSinceEpoch(currentStockData.m_endTime).toString("yyyy");
-            if (beginYear == year || endYear == year)
-            {
-                if (checkIfStockDataOk(currentStockData, yearFilterCondition))
-                {
-                    yearStockDatas.append(currentStockData);
-                }
-            }
-
-            if (beginDateTime.date().year() > date.year())
-            {
-                break;
-            }
-        }
 
         left++;
     }
 }
 
-void DataFilter::filterMonthData(QDate date, bool useLunarTime, const QVector<StockData>& yearStockDatas, QVector<StockData>& monthStockDatas)
+void DataFilter::filterMonthData(QDate date, bool notLossFilter, bool useLunarTime, const QVector<StockData>& yearStockDatas, QVector<StockData>& monthStockDatas)
 {
     // 从前3个月开始(考虑到农历公历时间差)，找到开始筛选的数据点
     QDateTime beginSearchDateTime;
@@ -290,7 +368,8 @@ void DataFilter::filterMonthData(QDate date, bool useLunarTime, const QVector<St
     int left = findIndex(stockDatas, beginSearchTime);
 
     // 开始筛选
-    FilterCondition monthFilterCondition = SettingManager::getInstance()->m_filterCondition[MONTH_FILTER_CONDTION];
+    const FilterCondition& monthFilterCondition = SettingManager::getInstance()->m_filterCondition[MONTH_FILTER_CONDTION];
+    const FilterConditionV2& filterConditionV2 = SettingManager::getInstance()->m_filterConditionV2;
     QString month = date.toString(QString::fromWCharArray(L"yyyy年M月"));
     QDateTime filterDateTime;
     filterDateTime.setDate(QDate(date.year(), date.month(), 1));
@@ -298,14 +377,13 @@ void DataFilter::filterMonthData(QDate date, bool useLunarTime, const QVector<St
     while (left < stockDatas.length())
     {
         const StockData& currentStockData = stockDatas[left];
-        bool ok = false;
-        if (useLunarTime)
+        if (notLossFilter)
         {
             if (currentStockData.m_lunarTime == month)
             {
-                if (checkIfStockDataOk(currentStockData, monthFilterCondition))
+                if (StockDataUtil::checkIfStockDataOkV2(currentStockData, filterConditionV2))
                 {
-                    ok = true;
+                    monthStockDatas.append(currentStockData);
                 }
             }
 
@@ -317,28 +395,48 @@ void DataFilter::filterMonthData(QDate date, bool useLunarTime, const QVector<St
         }
         else
         {
-            if (filterTime >= currentStockData.m_beginTime && filterTime <= currentStockData.m_endTime)
+            bool ok = false;
+            if (useLunarTime)
             {
-                if (checkIfStockDataOk(currentStockData, monthFilterCondition))
+                if (currentStockData.m_lunarTime == month)
                 {
-                    ok = true;
+                    if (StockDataUtil::checkIfStockDataOk(currentStockData, monthFilterCondition, m_matchAll))
+                    {
+                        ok = true;
+                    }
+                }
+
+                QDateTime lunarDateTime = QDateTime::fromString(currentStockData.m_lunarTime, "yyyy年M月");
+                if (lunarDateTime.date() > date)
+                {
+                    break;
+                }
+            }
+            else
+            {
+                if (filterTime >= currentStockData.m_beginTime && filterTime <= currentStockData.m_endTime)
+                {
+                    if (StockDataUtil::checkIfStockDataOk(currentStockData, monthFilterCondition, m_matchAll))
+                    {
+                        ok = true;
+                    }
+                }
+
+                if (currentStockData.m_beginTime > filterTime)
+                {
+                    break;
                 }
             }
 
-            if (currentStockData.m_beginTime > filterTime)
+            if (ok)
             {
-                break;
-            }
-        }
-
-        if (ok)
-        {
-            for (const auto& stockData : yearStockDatas)
-            {
-                if (currentStockData.m_stockName == stockData.m_stockName)
+                for (const auto& stockData : yearStockDatas)
                 {
-                    monthStockDatas.append(currentStockData);
-                    break;
+                    if (currentStockData.m_stockName == stockData.m_stockName)
+                    {
+                        monthStockDatas.append(currentStockData);
+                        break;
+                    }
                 }
             }
         }
@@ -347,7 +445,7 @@ void DataFilter::filterMonthData(QDate date, bool useLunarTime, const QVector<St
     }
 }
 
-void DataFilter::filterDayData(QDate date, const QVector<StockData>& monthStockDatas, QVector<StockData>& dayStockDatas)
+void DataFilter::filterDayData(QDate date, bool notLossFilter, const QVector<StockData>& monthStockDatas, QVector<StockData>& dayStockDatas)
 {
     QDateTime beginSearchDateTime;
     beginSearchDateTime.setDate(date);
@@ -357,17 +455,22 @@ void DataFilter::filterDayData(QDate date, const QVector<StockData>& monthStockD
     int left = findIndex(stockDatas, beginSearchTime);
 
     // 开始筛选
-    FilterCondition dayFilterCondition = SettingManager::getInstance()->m_filterCondition[DAY_FILTER_CONDTION];
+    const FilterCondition& dayFilterCondition = SettingManager::getInstance()->m_filterCondition[DAY_FILTER_CONDTION];
+    const FilterConditionV2& filterConditionV2 = SettingManager::getInstance()->m_filterConditionV2;
     qint64 filterTime = beginSearchTime;
     while (left < stockDatas.length())
     {
-        const StockData& currentStockData = stockDatas[left];
+        const StockData& currentStockData = stockDatas[left];        
         bool ok = false;
         if (currentStockData.m_beginTime == filterTime)
         {
-            if (checkIfStockDataOk(currentStockData, dayFilterCondition))
+            if (notLossFilter)
             {
-                ok = true;
+                ok = StockDataUtil::checkIfStockDataOkV2(currentStockData, filterConditionV2);
+            }
+            else
+            {
+                ok = StockDataUtil::checkIfStockDataOk(currentStockData, dayFilterCondition, m_matchAll);
             }
         }
 
@@ -378,12 +481,19 @@ void DataFilter::filterDayData(QDate date, const QVector<StockData>& monthStockD
 
         if (ok)
         {
-            for (const auto& stockData : monthStockDatas)
+            if (notLossFilter)
             {
-                if (currentStockData.m_stockName == stockData.m_stockName)
+                dayStockDatas.append(currentStockData);
+            }
+            else
+            {
+                for (const auto& stockData : monthStockDatas)
                 {
-                    dayStockDatas.append(currentStockData);
-                    break;
+                    if (currentStockData.m_stockName == stockData.m_stockName)
+                    {
+                        dayStockDatas.append(currentStockData);
+                        break;
+                    }
                 }
             }
         }
@@ -410,7 +520,7 @@ void DataFilter::filterSecondDayData(QDate date, const QVector<StockData>& daySt
         const StockData& currentStockData = stockDatas[left];
         if (currentStockData.m_beginTime == filterTime)
         {
-            if (checkIfStockDataOk(currentStockData, filterCondition))
+            if (StockDataUtil::checkIfStockDataOk(currentStockData, filterCondition, m_matchAll))
             {
                 okStockDatas.append(currentStockData);
             }
@@ -440,7 +550,7 @@ void DataFilter::filterSecondDayData(QDate date, const QVector<StockData>& daySt
 void DataFilter::filterHourData(QDate date, const QVector<StockData>& matchStockDatas, int dataType, int filterType, QVector<StockData>& hourStockDatas)
 {
     QVector<StockData> tempHourStockDatas;
-    filterHourData(date, dataType, filterType, tempHourStockDatas);
+    filterHourData(date, false, dataType, filterType, tempHourStockDatas);
     for (const auto& currentStockData : tempHourStockDatas)
     {
         for (const auto& stockData : matchStockDatas)
@@ -454,7 +564,7 @@ void DataFilter::filterHourData(QDate date, const QVector<StockData>& matchStock
     }
 }
 
-void DataFilter::filterHourData(QDate date, int dataType, int filterType, QVector<StockData>& hourStockDatas)
+void DataFilter::filterHourData(QDate date, bool notLossFilter, int dataType, int filterType, QVector<StockData>& hourStockDatas)
 {
     QDateTime beginSearchDateTime;
     beginSearchDateTime.setDate(date);
@@ -471,9 +581,13 @@ void DataFilter::filterHourData(QDate date, int dataType, int filterType, QVecto
         bool ok = false;
         if (currentStockData.m_beginTime == filterTime)
         {
-            if (checkIfStockDataOk(currentStockData, SettingManager::getInstance()->m_filterCondition[filterType]))
+            if (notLossFilter)
             {
-                ok = true;
+                ok = StockDataUtil::checkIfStockDataOkV2(currentStockData, SettingManager::getInstance()->m_filterConditionV2);
+            }
+            else
+            {
+                ok = StockDataUtil::checkIfStockDataOk(currentStockData, SettingManager::getInstance()->m_filterCondition[filterType], m_matchAll);
             }
         }
 
@@ -491,216 +605,25 @@ void DataFilter::filterHourData(QDate date, int dataType, int filterType, QVecto
     }
 }
 
-bool DataFilter::checkIfStockDataOk(StockData stockData, const FilterCondition& filterCondition)
-{
-    if (!filterCondition.isEnable())
-    {
-        return true;
-    }
-
-    QString data1 = stockData.m_data[0];
-    QString data2 = stockData.m_data[1];
-
-    // 有空字先借位    
-    if (stockData.m_data[0].indexOf(QString::fromWCharArray(L"空")) >= 0)
-    {
-        stockData.m_data[0] += data2;
-    }
-    if (stockData.m_data[1].indexOf(QString::fromWCharArray(L"空")) >= 0)
-    {
-        stockData.m_data[1] += data1;
-    }
-
-    // 删除：阳忌、昌科、曲科、阳（忌）、昌（科）、曲（科）
-    for (int i=0; i<4; i++)
-    {
-        stockData.m_data[i].replace(QString::fromWCharArray(L"阳忌"), "");
-        stockData.m_data[i].replace(QString::fromWCharArray(L"昌科"), "");
-        stockData.m_data[i].replace(QString::fromWCharArray(L"曲科"), "");
-        stockData.m_data[i].replace(QString::fromWCharArray(L"阳(忌)"), "");
-        stockData.m_data[i].replace(QString::fromWCharArray(L"昌(科)"), "");
-        stockData.m_data[i].replace(QString::fromWCharArray(L"曲(科)"), "");
-    }
-
-    // 一二宫有存字，就删除禄字
-    if (data1.indexOf(QString::fromWCharArray(L"存")) >= 0 ||
-            data2.indexOf(QString::fromWCharArray(L"存")) >= 0)
-    {
-        stockData.m_data[0].replace(QString::fromWCharArray(L"禄"), "");
-        stockData.m_data[1].replace(QString::fromWCharArray(L"禄"), "");
-    }
-
-    // 一二宫有禄字，就删除存字
-    if (data1.indexOf(QString::fromWCharArray(L"禄")) >= 0 ||
-            data2.indexOf(QString::fromWCharArray(L"禄")) >= 0)
-    {
-        stockData.m_data[0].replace(QString::fromWCharArray(L"存"), "");
-        stockData.m_data[1].replace(QString::fromWCharArray(L"存"), "");
-    }
-
-    // 检查一宫不含，每个字都要满足
-    for (int i=0; i<filterCondition.m_oneExclude.length(); i++)
-    {
-        QString word = filterCondition.m_oneExclude[i];
-        if (word == QString::fromWCharArray(L"存"))
-        {
-            if (hasCunWord(stockData.m_data[0], stockData.m_data[0], stockData.m_data[1]))
-            {
-                return false;
-            }
-        }
-        else
-        {
-            if (stockData.m_data[0].indexOf(word) >= 0 && haveWordWithoutKuohao(word, stockData.m_data))
-            {
-                return false;
-            }
-        }
-    }
-
-    // 检查二宫不含，每个字都要满足
-    for (int i=0; i<filterCondition.m_twoExclude.length(); i++)
-    {
-        QString word = filterCondition.m_twoExclude[i];
-        if (word == QString::fromWCharArray(L"存"))
-        {
-            if (hasCunWord(stockData.m_data[1], stockData.m_data[0], stockData.m_data[1]))
-            {
-                return false;
-            }
-        }
-        else
-        {
-            if (stockData.m_data[1].indexOf(word) >= 0 && haveWordWithoutKuohao(word, stockData.m_data))
-            {
-                return false;
-            }
-        }
-    }
-
-    // 检查一宫含，只要一个满足
-    bool ok = false;
-    for (int i=0; i<filterCondition.m_oneInclude.length(); i++)
-    {
-        QString word = filterCondition.m_oneInclude[i];
-        if (word == QString::fromWCharArray(L"存"))
-        {
-            if (hasCunWord(stockData.m_data[0], stockData.m_data[0], stockData.m_data[1]))
-            {
-                ok = true;
-                break;
-            }
-        }
-        else
-        {
-            if (stockData.m_data[0].indexOf(word) >= 0 && haveWordWithoutKuohao(word, stockData.m_data))
-            {
-                ok = true;
-                break;
-            }
-        }
-    }
-    if (filterCondition.m_oneInclude.length() > 0 && !ok)
-    {
-        return false;
-    }
-
-    // 检查二宫含，只要一个满足
-    ok = false;
-    for (int i=0; i<filterCondition.m_twoInclude.length(); i++)
-    {
-        QString word = filterCondition.m_twoInclude[i];
-        if (word == QString::fromWCharArray(L"存"))
-        {
-            if (hasCunWord(stockData.m_data[1], stockData.m_data[0], stockData.m_data[1]))
-            {
-                ok = true;
-                break;
-            }
-        }
-        else
-        {
-            if (stockData.m_data[1].indexOf(word) >= 0 && haveWordWithoutKuohao(word, stockData.m_data))
-            {
-                ok = true;
-                break;
-            }
-        }
-    }
-    if (filterCondition.m_twoInclude.length() > 0 && !ok)
-    {
-        return false;
-    }
-
-    return true;
-}
-
-bool DataFilter::hasCunWord(QString data, QString data1, QString data2)
-{
-    QString cun = QString::fromWCharArray(L"存");
-
-    // 只能有一个存字
-    int count = 0;
-    for (int i=0; i<data.length(); i++)
-    {
-        if (data[i] == cun)
-        {
-            count++;
-        }
-    }
-    if (count != 1)
-    {
-        return false;
-    }
-
-    // 存前后是括号，返回false
-    if (data.indexOf(QString::fromWCharArray(L"(存)")) >= 0)
-    {
-        return false;
-    }
-
-    // 一二宫带有禄字，返回false
-    if (data1.indexOf(QString::fromWCharArray(L"禄")) >= 0 ||
-            data2.indexOf(QString::fromWCharArray(L"禄")) >= 0)
-    {
-        return false;
-    }
-
-    return true;
-}
-
-bool DataFilter::haveWordWithoutKuohao(QString word, QString data[4])
-{
-    for (int j=0; j<4; j++)
-    {
-        QString currentData = data[j];
-        for (int i=0; i<currentData.length(); i++)
-        {
-            if (currentData[i] == word)
-            {
-                if (i == 0 || currentData[i-1] != "(" || i == currentData.length() - 1
-                        || currentData[i+1] != ")")
-                {
-                    return true;
-                }
-            }
-        }
-    }
-
-    return false;
-}
-
 FilterDataController::FilterDataController(QObject *parent)
     : QObject{parent}
 {
 
 }
 
-void FilterDataController::run(bool onlyFilterHour, bool onlyFilterToMonth, QDate beginDate, QDate endDate)
+void FilterDataController::run(const FilterParam& filterParam)
 {
-    if (!onlyFilterHour)
+    if (m_name.isEmpty())
     {
-        QString savePath = QString::fromStdWString(CImPath::GetDataPath()) + QString::fromWCharArray(L"明细\\");
+        emit printLog(QString::fromWCharArray(L"过滤器名字为空"));
+        emit runFinish();
+        return;
+    }
+
+    bool delDetailDir = filterParam.m_notLossFilter || !filterParam.m_onlyFilterHour;
+    if (delDetailDir)
+    {
+        QString savePath = QString::fromStdWString(CImPath::GetDataPath()) + m_name + QString::fromWCharArray(L"\\");
         if (!MergeDataController::removeDir(savePath))
         {
             emit printLog(QString::fromWCharArray(L"无法删除明细目录，请先关闭已打开的文件。"));
@@ -711,9 +634,8 @@ void FilterDataController::run(bool onlyFilterHour, bool onlyFilterToMonth, QDat
 
     emit printLog(QString::fromWCharArray(L"开始筛选数据"));
 
-    m_onlyFilterHour = onlyFilterHour;
-    m_onlyFilterToMonth = onlyFilterToMonth;
-    m_totalDays = beginDate.daysTo(endDate);
+    m_filterParam = filterParam;
+    m_totalDays = filterParam.m_beginDate.daysTo(filterParam.m_endDate);
     if (m_totalDays <= 0)
     {
         qCritical("total days is zero");
@@ -726,16 +648,19 @@ void FilterDataController::run(bool onlyFilterHour, bool onlyFilterToMonth, QDat
     int dayPerThread = m_totalDays / threadCount;
     for (int i=0; i<threadCount; i++)
     {
-        QDate begin = beginDate.addDays(i*dayPerThread);
-        QDate end = beginDate.addDays((i+1)*dayPerThread);
+        QDate begin = filterParam.m_beginDate.addDays(i*dayPerThread);
+        QDate end = filterParam.m_beginDate.addDays((i+1)*dayPerThread);
         if (i == threadCount-1)
         {
-            end = endDate;
+            end = filterParam.m_endDate;
         }
 
         DataFilter* dataFilter = new DataFilter();
-        dataFilter->m_onlyFilterHour = onlyFilterHour;
-        dataFilter->m_onlyFilterToMonth = onlyFilterToMonth;
+        dataFilter->m_notLossFilter = filterParam.m_notLossFilter;
+        dataFilter->m_notLossFilterDataType = filterParam.m_notLossFilterDataType;
+        dataFilter->m_onlyFilterHour = filterParam.m_onlyFilterHour;
+        dataFilter->m_onlyFilterToMonth = filterParam.m_onlyFilterToMonth;
+        dataFilter->m_matchAll = filterParam.m_matchAll;
         dataFilter->m_beginDate = begin;
         dataFilter->m_endDate = end;
 
@@ -784,20 +709,25 @@ void FilterDataController::onFilterRunFinish(DataFilter* dataFilter)
 
     if (m_dataFilters.empty())
     {
-        emit printLog(QString::fromWCharArray(L"筛选数据完成，共%1条").arg(m_stockDatas.size()));
-        if (!m_stockDatas.isEmpty())
+        if (m_stockDatas.isEmpty())
         {
-            if (!m_onlyFilterHour)
+            emit printLog(QString::fromWCharArray(L"筛选数据完成，没有数据。"));
+        }
+        else
+        {
+            emit printLog(QString::fromWCharArray(L"筛选数据完成"));
+            if (m_filterParam.isOnlyFilterHourData())
+            {
+                saveStockHourDataSummaryInfo();
+            }
+            else
             {
                 saveStockData();
                 saveStockDataDetail();
             }
-            else
-            {
-                saveStockHourDataSummaryInfo();
-            }
             QDesktopServices::openUrl(QUrl::fromLocalFile(QString::fromStdWString(CImPath::GetDataPath())));
         }
+
         emit runFinish();
     }
 }
@@ -823,9 +753,10 @@ void FilterDataController::saveStockData()
     {
         hasIndustry = true;
     }
+
     for (const auto& stockData : m_stockDatas)
     {
-        if (m_onlyFilterToMonth)
+        if (m_filterParam.isStockDataYearOrMonth())
         {
             // 只过滤到月，用农历时间
             if (!result.isEmpty() && stockData.m_lunarTime != lunarTime)
@@ -906,7 +837,7 @@ void FilterDataController::saveStockData()
                 stockName = "";
                 industryName = stockData.m_industryName;
                 result += industryName + "\r\n";
-                if (m_onlyFilterToMonth)
+                if (m_filterParam.isStockDataYearOrMonth())
                 {
                     result += "           ";
                 }
@@ -925,7 +856,7 @@ void FilterDataController::saveStockData()
         }
     }
 
-    QString resultFilePath = QString::fromStdWString(CImPath::GetDataPath()) + QString::fromWCharArray(L"结果.txt");
+    QString resultFilePath = QString::fromStdWString(CImPath::GetDataPath()) + m_name + QString::fromWCharArray(L".txt");
     QFile resultFile(resultFilePath);
     if (resultFile.open(QFile::WriteOnly))
     {
@@ -991,7 +922,7 @@ void FilterDataController::saveStockDataDetail(int begin, int end)
         return;
     }
 
-    QString savePath = QString::fromStdWString(CImPath::GetDataPath()) + QString::fromWCharArray(L"明细\\");
+    QString savePath = QString::fromStdWString(CImPath::GetDataPath()) + m_name + QString::fromWCharArray(L"\\");
     QDir dir;
     if (!dir.exists(savePath))
     {
@@ -1014,7 +945,7 @@ void FilterDataController::saveStockDataDetail(int begin, int end)
     for (int i=begin; i<end; i++)
     {
         const auto& stockData = m_stockDatas[i];
-        if (m_onlyFilterToMonth)
+        if (m_filterParam.isStockDataYearOrMonth())
         {
             if (stockData.m_lunarTime == lunarTime)
             {
@@ -1025,7 +956,7 @@ void FilterDataController::saveStockDataDetail(int begin, int end)
             result += stockData.m_lunarTime + "\r\n";
             lunarTime = stockData.m_lunarTime;
 
-            // 输出：年，4宫内容
+            // 输出：年，宫内容
             appendSpaceChar(result, PREFIX_SPACE_COUNT);
             StockData yearStockData = stockData;
             if (stockData.m_lunarTime.indexOf(QString::fromWCharArray(L"月")) > 0)
@@ -1040,7 +971,7 @@ void FilterDataController::saveStockDataDetail(int begin, int end)
             }
             result += "\r\n";
 
-            // 输出：月，4宫内容
+            // 输出：月，宫内容
             if (stockData.m_lunarTime.indexOf(QString::fromWCharArray(L"月")) > 0)
             {
                 appendSpaceChar(result, PREFIX_SPACE_COUNT);
@@ -1068,7 +999,7 @@ void FilterDataController::saveStockDataDetail(int begin, int end)
 
             int prefixSpaceCount = PREFIX_SPACE_COUNT;
 
-            // 输出：股票名称，月，4宫内容
+            // 输出：股票名称，月，宫内容
             appendSpaceChar(result, prefixSpaceCount);
             StockData monthStockData = findMonthStockDataByDay(stockData);
             result += monthStockData.m_lunarTime;
@@ -1081,14 +1012,14 @@ void FilterDataController::saveStockDataDetail(int begin, int end)
 
             prefixSpaceCount += PREFIX_SPACE_COUNT;
 
-            // 输出：上一日和时，4宫内容
+            // 输出：上一日和时，宫内容
             StockData lastStockData = findLastDayStockDataByDay(stockData);
             if (!lastStockData.m_stockName.isEmpty())
             {
                 appendDayStockData(prefixSpaceCount, result, lastStockData);
             }
 
-            // 输出：当日和时，4宫内容
+            // 输出：当日和时，宫内容
             appendDayStockData(prefixSpaceCount, result, stockData);
         }
     }

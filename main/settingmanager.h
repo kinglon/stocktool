@@ -3,6 +3,7 @@
 #include <QString>
 #include <QVector>
 #include "datamodel.h"
+#include "stockdatautil.h"
 
 // 过滤条件索引
 #define YEAR_FILTER_CONDTION        0
@@ -31,4 +32,7 @@ public:
     int m_nLogLevel = 2;  // info
 
     FilterCondition m_filterCondition[MAX_FILTER_CONDTION_COUNT];
+
+    // 无损筛选条件
+    FilterConditionV2 m_filterConditionV2;
 };

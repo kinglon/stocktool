@@ -17,10 +17,6 @@
 #define STOCK_DATA_HOUR_WEI     5
 #define MAX_STOCK_DATA_COUNT    6
 
-QString YiWord = QString::fromWCharArray(L"巳");
-QString WuWord = QString::fromWCharArray(L"午");
-QString WeiWord = QString::fromWCharArray(L"未");
-
 ContentBrowser::ContentBrowser(QObject *parent)
     : QObject{parent}
 {
@@ -33,6 +29,7 @@ void ContentBrowser::run()
     m_stockName = dir.dirName();
 
     QString content;
+    printLimitContent(content);
     printYearContent(content);
     printMonthContent(content);
     printDayContent(content);
@@ -47,6 +44,89 @@ void ContentBrowser::run()
         emit printContent(QString::fromWCharArray(L"无数据"));
     }
     emit runFinish();
+}
+
+void ContentBrowser::printLimitContent(QString& content)
+{
+    QString stockDataFilePath = m_stockPath + "\\" + m_stockName + QString::fromWCharArray(L"限.csv");
+    QFile file(stockDataFilePath);
+    if (!file.open(QIODevice::ReadOnly | QIODevice::Text))
+    {
+        return;
+    }
+
+    int thisYear = QDate::currentDate().year();
+    QTextStream in(&file);
+    while (!in.atEnd())
+    {
+        QString line = in.readLine();
+        if (line.isEmpty())
+        {
+            continue;
+        }
+
+        QStringList fields = line.split(',');
+        QStringList newFields;
+        for (auto& field : fields)
+        {
+            // 去除前后双引号
+            QString subString = field.mid(1, field.length()-2);
+            if (subString.isEmpty())
+            {
+                continue;
+            }
+            newFields.append(subString);
+        }
+
+        if (newFields.size() < 3)
+        {
+            continue;
+        }
+
+        if (newFields[0] == QString::fromWCharArray(L"时间"))
+        {
+            continue;
+        }
+
+        bool needOutput = false;
+        if (newFields[0] == QString::fromWCharArray(L"1岁大限"))
+        {
+            needOutput = true;
+        }
+        else
+        {
+            bool ok = false;
+            int beginYear = newFields[1].toInt(&ok);
+            if (!ok)
+            {
+                continue;
+            }
+
+            int endYear = newFields[2].toInt(&ok);
+            if (!ok)
+            {
+                continue;
+            }
+
+            if (thisYear >= beginYear && thisYear <= endYear)
+            {
+                needOutput = true;
+            }
+        }
+
+        if (needOutput)
+        {
+            content += "   ";
+            for (const auto& field : newFields)
+            {
+                content += field + " ";
+            }
+            content += "\n";
+        }
+    }
+    file.close();
+
+    content += "\n\n";
 }
 
 void ContentBrowser::printYearContent(QString& content)
@@ -207,7 +287,7 @@ QVector<StockData> ContentBrowser::loadStockData(const QString& stockDataFilePat
     {
         QString line = in.readLine();
         StockData stockData;
-        if (!parseOneLine("", m_stockName, dataType, line, stockData))
+        if (!StockDataUtil::parseOneLine("", m_stockName, dataType, line, stockData))
         {
             continue;
         }
@@ -222,100 +302,4 @@ QVector<StockData> ContentBrowser::loadStockData(const QString& stockDataFilePat
     file.close();
 
     return stockDatas;
-}
-
-bool ContentBrowser::parseOneLine(const QString& industryName, const QString& stockName, int dataType, const QString& line, StockData& stockData)
-{
-    if (line.isEmpty())
-    {
-        return false;
-    }
-
-    QStringList fields = line.split(',');
-    if (fields.length() < 5)
-    {
-        return false;
-    }
-
-    QStringList newFields;
-    for (auto& field : fields)
-    {
-        // 去除前后双引号
-        QString subString = field.mid(1, field.length()-2);
-        if (subString.isEmpty())
-        {
-            return false;
-        }
-        newFields.append(subString);
-    }
-
-    if (newFields[0] == QString::fromWCharArray(L"时间"))
-    {
-        return false;
-    }
-
-    stockData.m_industryName = industryName;
-    stockData.m_stockName = stockName;
-    if (dataType == STOCK_DATA_YEAR || dataType == STOCK_DATA_MONTH)
-    {
-        if (newFields.length() != 7)
-        {
-            return false;
-        }
-
-        stockData.m_lunarTime = newFields[0];
-
-        QDateTime beginTime = QDateTime::fromString(newFields[1], "yyyy-M-d");
-        if (!beginTime.isValid())
-        {
-            return false;
-        }
-        stockData.m_beginTime = beginTime.toSecsSinceEpoch();
-
-        QDateTime endTime = QDateTime::fromString(newFields[2], "yyyy-M-d");
-        if (!endTime.isValid())
-        {
-            return false;
-        }
-        stockData.m_endTime = endTime.toSecsSinceEpoch();
-
-        for (int i=0; i<DATA_FIELD_LENGTH; i++)
-        {
-            stockData.m_data[i] = newFields[3+i];
-        }
-    }
-    else
-    {
-        if (newFields.length() != 5)
-        {
-            return false;
-        }
-
-        // 时数据，有大量不需要，优先过滤掉
-        QString dateString;
-        if (dataType == STOCK_DATA_HOUR)
-        {
-            stockData.m_hour = newFields[0].right(1);
-            if (stockData.m_hour != YiWord && stockData.m_hour != WuWord && stockData.m_hour != WeiWord)
-            {
-                return false;
-            }
-            dateString = newFields[0].left(newFields[0].length()-1);
-        }
-        else
-        {
-            dateString = newFields[0];
-        }
-
-        QDateTime dateTime = QDateTime::fromString(dateString, QString::fromWCharArray(L"yyyy年 M月 d日"));
-        stockData.m_beginTime = dateTime.toSecsSinceEpoch();
-        stockData.m_endTime = stockData.m_beginTime;
-
-        for (int i=0; i<DATA_FIELD_LENGTH; i++)
-        {
-            stockData.m_data[i] = newFields[1+i];
-        }
-    }
-
-    return true;
 }

@@ -190,7 +190,7 @@ void MyChartWidget::paintBar(QPainter& painter, const ChartData& chartData, cons
     }
 
     // 画时柱状图
-    if (chartData.m_type == CHART_DATA_TYPE_DAY)
+    if (chartData.m_type == CHART_DATA_TYPE_DAY && !DataManager::getInstance()->m_hourDatas.empty())
     {
         QRect hourFrameRect(right, mainRect.top(), 2 * mainRect.height(), mainRect.height());
         painter.setBrush(Qt::transparent);

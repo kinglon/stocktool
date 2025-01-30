@@ -3,16 +3,7 @@
 
 #include <QVector>
 #include "datamodel.h"
-
-// 股票数据索引
-#define STOCK_DATA_YEAR         0
-#define STOCK_DATA_MONTH        1
-#define STOCK_DATA_DAY          2
-#define STOCK_DATA_HOUR         3
-#define STOCK_DATA_HOUR_YI      3
-#define STOCK_DATA_HOUR_WU      4
-#define STOCK_DATA_HOUR_WEI     5
-#define MAX_STOCK_DATA_COUNT    6
+#include "stockdatautil.h"
 
 class DataManager
 {

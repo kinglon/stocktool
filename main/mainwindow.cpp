@@ -9,6 +9,7 @@
 #include "daymergedatacontroller.h"
 #include "monthmergedatacontroller.h"
 #include "datamanager.h"
+#include "notlossfilterdialog.h"
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -53,6 +54,7 @@ void MainWindow::initCtrls()
     connect(ui->filterHourDataButton, &QPushButton::clicked, this, &MainWindow::onFilterHourDataButtonClicked);
     connect(ui->dayCompareButton, &QPushButton::clicked, this, &MainWindow::onDayCompareButtonClicked);
     connect(ui->monthCompareButton, &QPushButton::clicked, this, &MainWindow::onMonthCompareButtonClicked);
+    connect(ui->notLossFilterButton, &QPushButton::clicked, this, &MainWindow::onNotLossFilterButtonClicked);
 }
 
 void MainWindow::enableOperate(bool enable)
@@ -62,6 +64,7 @@ void MainWindow::enableOperate(bool enable)
     ui->filterHourDataButton->setEnabled(enable);
     ui->dayCompareButton->setEnabled(enable);
     ui->monthCompareButton->setEnabled(enable);
+    ui->notLossFilterButton->setEnabled(enable);
 }
 
 void MainWindow::closeEvent(QCloseEvent *event)
@@ -108,6 +111,8 @@ void MainWindow::onLoadDataButtonClicked()
         return;
     }
 
+    m_loadDataPath = rootDir;
+
     LoadDataController* controller = new LoadDataController(this);
     connect(controller, &LoadDataController::printLog, this, &MainWindow::onPrintLog);
     connect(controller, &LoadDataController::runFinish, [this, controller]() {
@@ -128,6 +133,37 @@ void MainWindow::onFilterHourDataButtonClicked()
     doFilter(true);
 }
 
+void MainWindow::onNotLossFilterButtonClicked()
+{
+    if (!DataManager::getInstance()->hasData())
+    {
+        UiUtil::showTip(QString::fromWCharArray(L"请先加载数据"));
+        return;
+    }
+
+    NotLossFilterDialog dialog(this);
+    dialog.show();
+    if (dialog.exec() != QDialog::Accepted)
+    {
+        return;
+    }
+
+    FilterDataController* controller = new FilterDataController(this);
+    connect(controller, &FilterDataController::printLog, this, &MainWindow::onPrintLog);
+    connect(controller, &FilterDataController::runFinish, [this, controller]() {
+        controller->deleteLater();
+        enableOperate(true);
+    });
+    enableOperate(false);
+    controller->m_name = QDir(m_loadDataPath).dirName();
+
+    FilterParam filterParam;
+    filterParam.m_notLossFilter = true;
+    filterParam.m_notLossFilterDataType = dialog.m_notLossFilterDataType;
+    filterParam.m_beginDate = dialog.m_beginDate;
+    filterParam.m_endDate = dialog.m_endDate;
+    controller->run(filterParam);
+}
 
 void MainWindow::doFilter(bool filterHour)
 {
@@ -161,6 +197,8 @@ void MainWindow::doFilter(bool filterHour)
         return;
     }
 
+    bool matchAll = ui->matchAllGongCheckBox->isChecked();
+
     FilterDataController* controller = new FilterDataController(this);
     connect(controller, &FilterDataController::printLog, this, &MainWindow::onPrintLog);
     connect(controller, &FilterDataController::runFinish, [this, controller]() {
@@ -168,7 +206,16 @@ void MainWindow::doFilter(bool filterHour)
         enableOperate(true);
     });
     enableOperate(false);
-    controller->run(filterHour, onlyFilterToMonth, beginDate, endDate);
+    controller->m_name = QDir(m_loadDataPath).dirName();
+
+    FilterParam filterParam;
+    filterParam.m_notLossFilter = false;
+    filterParam.m_onlyFilterHour = filterHour;
+    filterParam.m_onlyFilterToMonth = onlyFilterToMonth;
+    filterParam.m_matchAll = matchAll;
+    filterParam.m_beginDate = beginDate;
+    filterParam.m_endDate = endDate;
+    controller->run(filterParam);
 }
 
 void MainWindow::onDayCompareButtonClicked()

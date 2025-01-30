@@ -25,12 +25,6 @@ private:
 
     bool parseColorDataLine(const QString& line, ColorData& colorData, const QString& oneInclude, const QString& twoInclude);
 
-    void checkIfInclude(QString data[4], const QString& oneInclude, const QString& twoInclude, bool& isOneInclude, bool& isTwoInclude);
-
-    bool hasCunWord(QString data, QString data1, QString data2);
-
-    bool haveWordWithoutKuohao(QString word, QString data[4]);
-
 private slots:
     // 加载主能量数据
     void onLoadDataButtonClicked();

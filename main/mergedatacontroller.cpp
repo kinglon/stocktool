@@ -92,7 +92,7 @@ bool DataMerger::loadData()
         {
             QString line = in.readLine();
             StockData stockData;
-            if (StockFileLoader::parseOneLine(m_industryNames[m_currentIndex], stockName, STOCK_DATA_DAY, line, stockData))
+            if (StockDataUtil::parseOneLine(m_industryNames[m_currentIndex], stockName, STOCK_DATA_DAY, line, stockData))
             {
                 QDate date = QDateTime::fromSecsSinceEpoch(stockData.m_beginTime).date();
                 if (date.dayOfWeek() != 6 && date.dayOfWeek() != 7)
@@ -113,7 +113,7 @@ bool DataMerger::loadData()
         {
             QString line = in.readLine();
             StockData stockData;
-            if (StockFileLoader::parseOneLine(m_industryNames[m_currentIndex], stockName, STOCK_DATA_MONTH, line, stockData))
+            if (StockDataUtil::parseOneLine(m_industryNames[m_currentIndex], stockName, STOCK_DATA_MONTH, line, stockData))
             {
                 m_monthStockData.append(stockData);
             }
@@ -130,7 +130,7 @@ bool DataMerger::loadData()
         {
             QString line = in.readLine();
             StockData stockData;
-            if (StockFileLoader::parseOneLine(m_industryNames[m_currentIndex], stockName, STOCK_DATA_YEAR, line, stockData))
+            if (StockDataUtil::parseOneLine(m_industryNames[m_currentIndex], stockName, STOCK_DATA_YEAR, line, stockData))
             {
                 m_yearStockData.append(stockData);
             }

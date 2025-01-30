@@ -5,6 +5,51 @@
 #include <QDate>
 #include <QThread>
 #include "datamanager.h"
+#include "stockdatautil.h"
+
+class FilterParam
+{
+public:
+    // 标志是否为无损过滤
+    bool m_notLossFilter = false;
+
+    // 无损过滤时有效，选择筛选的数据
+    int m_notLossFilterDataType = STOCK_DATA_YEAR;
+
+    // 有损过滤时有效，只过滤时的数据
+    int m_onlyFilterHour = false;
+
+    // 有损过滤时有效，只过滤到月的数据
+    int m_onlyFilterToMonth = false;
+
+    // 有损过滤时有效，标志是否全宫相关
+    bool m_matchAll = false;
+
+    // 过滤时间范围
+    QDate m_beginDate;
+    QDate m_endDate; // 不含
+
+public:
+    bool isOnlyFilterHourData()
+    {
+        return !m_notLossFilter && m_onlyFilterHour;
+    }
+
+    bool isStockDataYearOrMonth()
+    {
+        if (m_notLossFilter &&
+                (m_notLossFilterDataType == STOCK_DATA_YEAR || m_notLossFilterDataType == STOCK_DATA_MONTH))
+        {
+            return true;
+        }
+        else if (!m_notLossFilter && m_onlyFilterToMonth)
+        {
+            return true;
+        }
+
+        return false;
+    }
+};
 
 class DataFilter : public QObject
 {
@@ -24,38 +69,37 @@ signals:
     void runFinish(DataFilter* dataFilter);
 
 private:
+    void filterByNotLoss(QDate date);
+
     void filterOnlyToMonth(QDate date);
 
     void filterNotOnlyToMonth(QDate date);
 
     void filterOnlyHourData(QDate date);
 
-    void filterYearData(QDate date, bool useLunarTime, QVector<StockData>& yearStockDatas);
+    void filterYearData(QDate date, bool notLossFilter, bool useLunarTime, QVector<StockData>& yearStockDatas);
 
-    void filterMonthData(QDate date, bool useLunarTime, const QVector<StockData>& yearStockDatas, QVector<StockData>& monthStockDatas);
+    void filterMonthData(QDate date, bool notLossFilter, bool useLunarTime, const QVector<StockData>& yearStockDatas, QVector<StockData>& monthStockDatas);
 
-    void filterDayData(QDate date, const QVector<StockData>& monthStockDatas, QVector<StockData>& dayStockDatas);
+    void filterDayData(QDate date, bool notLossFilter, const QVector<StockData>& monthStockDatas, QVector<StockData>& dayStockDatas);
 
     void filterSecondDayData(QDate date, const QVector<StockData>& dayStockDatas, QVector<StockData>& secondDayStockDatas);
 
     void filterHourData(QDate date, const QVector<StockData>& dayStockDatas, int dataType, int filterType, QVector<StockData>& hourStockDatas);
 
-    void filterHourData(QDate date, int dataType, int filterType, QVector<StockData>& hourStockDatas);
-
-
-    // 检查是否满足条件
-    bool checkIfStockDataOk(StockData stockData, const FilterCondition& filterCondition);
-
-    // 按规则检查是否有存字
-    bool hasCunWord(QString data, QString data1, QString data2);
-
-    // 检查4个宫格是否有不带括号的字
-    bool haveWordWithoutKuohao(QString word, QString data[4]);    
+    void filterHourData(QDate date, bool notLossFilter, int dataType, int filterType, QVector<StockData>& hourStockDatas);
 
 public:
+    bool m_notLossFilter = false;
+
+    // 无损过滤使用的数据
+    int m_notLossFilterDataType = STOCK_DATA_YEAR;
+
     bool m_onlyFilterHour = false;
 
     bool m_onlyFilterToMonth = true;
+
+    bool m_matchAll = true;
 
     QDate m_beginDate;
 
@@ -71,7 +115,7 @@ public:
     explicit FilterDataController(QObject *parent = nullptr);
 
 public:
-    void run(bool onlyFilterHour, bool onlyFilterToMonth, QDate beginDate, QDate endDate);
+    void run(const FilterParam& filterParam);
 
 signals:
     void printLog(QString content);
@@ -102,10 +146,12 @@ private:
 
     void appendDayStockData(int prefixSpaceCount, QString& result, const StockData& stockData);
 
-private:
-    bool m_onlyFilterHour = false;
+public:
+    // 过滤名字，不能为空
+    QString m_name;
 
-    bool m_onlyFilterToMonth = false;
+private:
+    FilterParam m_filterParam;
 
     QVector<DataFilter*> m_dataFilters;
 

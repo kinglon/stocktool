@@ -79,6 +79,19 @@
         </widget>
        </item>
        <item>
+        <widget class="QPushButton" name="notLossFilterButton">
+         <property name="maximumSize">
+          <size>
+           <width>100</width>
+           <height>16777215</height>
+          </size>
+         </property>
+         <property name="text">
+          <string>无损筛选</string>
+         </property>
+        </widget>
+       </item>
+       <item>
         <widget class="QPushButton" name="dayCompareButton">
          <property name="maximumSize">
           <size>
@@ -599,6 +612,13 @@
         <widget class="QCheckBox" name="onlyFilterMonthCheckBox">
          <property name="text">
           <string>只筛选到月的数据</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QCheckBox" name="matchAllGongCheckBox">
+         <property name="text">
+          <string>全宫相关</string>
          </property>
         </widget>
        </item>

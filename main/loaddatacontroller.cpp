@@ -5,10 +5,7 @@
 #include <QTextStream>
 #include <QDateTime>
 #include "Utility/ImPath.h"
-
-QString YiWord = QString::fromWCharArray(L"巳");
-QString WuWord = QString::fromWCharArray(L"午");
-QString WeiWord = QString::fromWCharArray(L"未");
+#include "stockdatautil.h"
 
 StockFileScanner::StockFileScanner(QObject *parent)
     : QObject{parent}
@@ -135,106 +132,10 @@ bool StockFileLoader::getStockNameAndType(const QString& fileName, QString& stoc
     return true;
 }
 
-bool StockFileLoader::parseOneLine(const QString& industryName, const QString& stockName, int dataType, const QString& line, StockData& stockData)
-{
-    if (line.isEmpty())
-    {
-        return false;
-    }
-
-    QStringList fields = line.split(',');
-    if (fields.length() < 5)
-    {
-        return false;
-    }
-
-    QStringList newFields;
-    for (auto& field : fields)
-    {
-        // 去除前后双引号
-        QString subString = field.mid(1, field.length()-2);
-        if (subString.isEmpty())
-        {
-            return false;
-        }
-        newFields.append(subString);
-    }
-
-    if (newFields[0] == QString::fromWCharArray(L"时间"))
-    {
-        return false;
-    }
-
-    stockData.m_industryName = industryName;
-    stockData.m_stockName = stockName;
-    if (dataType == STOCK_DATA_YEAR || dataType == STOCK_DATA_MONTH)
-    {
-        if (newFields.length() != 7)
-        {
-            return false;
-        }
-
-        stockData.m_lunarTime = newFields[0];
-
-        QDateTime beginTime = QDateTime::fromString(newFields[1], "yyyy-M-d");
-        if (!beginTime.isValid())
-        {
-            return false;
-        }
-        stockData.m_beginTime = beginTime.toSecsSinceEpoch();
-
-        QDateTime endTime = QDateTime::fromString(newFields[2], "yyyy-M-d");
-        if (!endTime.isValid())
-        {
-            return false;
-        }
-        stockData.m_endTime = endTime.toSecsSinceEpoch();
-
-        for (int i=0; i<DATA_FIELD_LENGTH; i++)
-        {
-            stockData.m_data[i] = newFields[3+i];
-        }
-    }
-    else
-    {
-        if (newFields.length() != 5)
-        {
-            return false;
-        }
-
-        // 时数据，有大量不需要，优先过滤掉
-        QString dateString;
-        if (dataType == STOCK_DATA_HOUR)
-        {
-            stockData.m_hour = newFields[0].right(1);
-            if (stockData.m_hour != YiWord && stockData.m_hour != WuWord && stockData.m_hour != WeiWord)
-            {
-                return false;
-            }
-            dateString = newFields[0].left(newFields[0].length()-1);
-        }
-        else
-        {
-            dateString = newFields[0];
-        }
-
-        QDateTime dateTime = QDateTime::fromString(dateString, QString::fromWCharArray(L"yyyy年 M月 d日"));
-        stockData.m_beginTime = dateTime.toSecsSinceEpoch();
-        stockData.m_endTime = stockData.m_beginTime;
-
-        for (int i=0; i<DATA_FIELD_LENGTH; i++)
-        {
-            stockData.m_data[i] = newFields[1+i];
-        }
-    }
-
-    return true;
-}
-
 void StockFileLoader::processOneLine(const QString& industryName, const QString& stockName, int dataType, const QString& line)
 {
     StockData stockData;
-    if (!parseOneLine(industryName, stockName, dataType, line, stockData))
+    if (!StockDataUtil::parseOneLine(industryName, stockName, dataType, line, stockData))
     {
         return;
     }
@@ -242,15 +143,15 @@ void StockFileLoader::processOneLine(const QString& industryName, const QString&
     if (dataType == STOCK_DATA_HOUR)
     {
         // 时要分已午未
-        if (stockData.m_hour == YiWord)
+        if (stockData.m_hour == QString::fromWCharArray(L"巳"))
         {
             m_stockDatas[STOCK_DATA_HOUR_YI].append(stockData);
         }
-        else if (stockData.m_hour == WuWord)
+        else if (stockData.m_hour == QString::fromWCharArray(L"午"))
         {
             m_stockDatas[STOCK_DATA_HOUR_WU].append(stockData);
         }
-        else if (stockData.m_hour == WeiWord)
+        else if (stockData.m_hour == QString::fromWCharArray(L"未"))
         {
             m_stockDatas[STOCK_DATA_HOUR_WEI].append(stockData);
         }

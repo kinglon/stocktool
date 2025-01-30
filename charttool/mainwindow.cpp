@@ -6,6 +6,7 @@
 #include <QDateTime>
 #include "datamanager.h"
 #include "uiutil.h"
+#include "../main/stockdatautil.h"
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -475,212 +476,38 @@ bool MainWindow::parseColorDataLine(const QString& line, ColorData& colorData, c
         return false;
     }
 
+    StockData stockData;
     QStringList fields = line.split(',');
-    if (fields.length() < 5)
+    if (fields.size() > 0 && fields[0].indexOf(QString::fromWCharArray(L"日")) > 0)
     {
-        return false;
-    }
-
-    QStringList newFields;
-    for (auto& field : fields)
-    {
-        // 去除前后双引号
-        QString subString = field.mid(1, field.length()-2);
-        if (subString.isEmpty())
-        {
-            return false;
-        }
-        newFields.append(subString);
-    }
-
-    if (newFields[0] == QString::fromWCharArray(L"时间"))
-    {
-        return false;
-    }
-
-    const int dataLength = 4;
-    QString datas[dataLength];
-    bool dayType = newFields[0].indexOf(QString::fromWCharArray(L"日")) > 0;
-    if (!dayType) // 月数据
-    {
-        if (newFields.length() != 7)
-        {
-            return false;
-        }
-
-        colorData.m_type = CHART_DATA_TYPE_MONTH;
-        QDateTime dateTime = QDateTime::fromString(newFields[0], QString::fromWCharArray(L"yyyy年M月"));
-        colorData.m_date = dateTime.toSecsSinceEpoch();
-        for (int i=0; i<dataLength; i++)
-        {
-            datas[i] = newFields[3+i];
-        }
-    }
-    else
-    {
-        if (newFields.length() != 5)
+        if (!StockDataUtil::parseOneLine("", "aa", STOCK_DATA_DAY, line, stockData))
         {
             return false;
         }
 
         colorData.m_type = CHART_DATA_TYPE_DAY;
-        QDateTime dateTime = QDateTime::fromString(newFields[0], QString::fromWCharArray(L"yyyy年 M月 d日"));
+        colorData.m_date = stockData.m_beginTime;
+    }
+    else
+    {
+        if (!StockDataUtil::parseOneLine("", "aa", STOCK_DATA_MONTH, line, stockData))
+        {
+            return false;
+        }
+
+        colorData.m_type = CHART_DATA_TYPE_MONTH;
+        QDateTime dateTime = QDateTime::fromString(stockData.m_lunarTime, QString::fromWCharArray(L"yyyy年M月"));
         colorData.m_date = dateTime.toSecsSinceEpoch();
-        for (int i=0; i<dataLength; i++)
-        {
-            datas[i] = newFields[1+i];
-        }
     }
 
-    checkIfInclude(datas, oneInclude, twoInclude, colorData.oneInclude, colorData.twoInclude);
+    FilterCondition filterCondition1;
+    filterCondition1.m_oneInclude = oneInclude;
+    colorData.oneInclude = StockDataUtil::checkIfStockDataOk(stockData, filterCondition1, true);
 
+    FilterCondition filterCondition2;
+    filterCondition1.m_twoInclude = twoInclude;
+    colorData.twoInclude = StockDataUtil::checkIfStockDataOk(stockData, filterCondition2, true);
     return true;
-}
-
-void MainWindow::checkIfInclude(QString data[4], const QString& oneInclude, const QString& twoInclude, bool& isOneInclude, bool& isTwoInclude)
-{
-    QString data1 = data[0];
-    QString data2 = data[1];
-
-    // 有空字先借位
-    if (data[0].indexOf(QString::fromWCharArray(L"空")) >= 0)
-    {
-        data[0] += data2;
-    }
-    if (data[1].indexOf(QString::fromWCharArray(L"空")) >= 0)
-    {
-        data[1] += data1;
-    }
-
-    // 删除：阳忌、昌科、曲科、阳（忌）、昌（科）、曲（科）
-    for (int i=0; i<4; i++)
-    {
-        data[i].replace(QString::fromWCharArray(L"阳忌"), "");
-        data[i].replace(QString::fromWCharArray(L"昌科"), "");
-        data[i].replace(QString::fromWCharArray(L"曲科"), "");
-        data[i].replace(QString::fromWCharArray(L"阳(忌)"), "");
-        data[i].replace(QString::fromWCharArray(L"昌(科)"), "");
-        data[i].replace(QString::fromWCharArray(L"曲(科)"), "");
-    }
-
-    // 一二宫有存字，就删除禄字
-    if (data1.indexOf(QString::fromWCharArray(L"存")) >= 0 ||
-            data2.indexOf(QString::fromWCharArray(L"存")) >= 0)
-    {
-        data[0].replace(QString::fromWCharArray(L"禄"), "");
-        data[1].replace(QString::fromWCharArray(L"禄"), "");
-    }
-
-    // 一二宫有禄字，就删除存字
-    if (data1.indexOf(QString::fromWCharArray(L"禄")) >= 0 ||
-            data2.indexOf(QString::fromWCharArray(L"禄")) >= 0)
-    {
-        data[0].replace(QString::fromWCharArray(L"存"), "");
-        data[1].replace(QString::fromWCharArray(L"存"), "");
-    }
-
-    // 检查一宫含，只要一个满足
-    bool ok = false;
-    for (int i=0; i<oneInclude.length(); i++)
-    {
-        QString word = oneInclude[i];
-        if (word == QString::fromWCharArray(L"存"))
-        {
-            if (hasCunWord(data[0], data[0], data[1]))
-            {
-                ok = true;
-                break;
-            }
-        }
-        else
-        {
-            if (data[0].indexOf(word) >= 0 && haveWordWithoutKuohao(word, data))
-            {
-                ok = true;
-                break;
-            }
-        }
-    }
-    isOneInclude = ok;
-
-    // 检查二宫含，只要一个满足
-    ok = false;
-    for (int i=0; i<twoInclude.length(); i++)
-    {
-        QString word = twoInclude[i];
-        if (word == QString::fromWCharArray(L"存"))
-        {
-            if (hasCunWord(data[1], data[0], data[1]))
-            {
-                ok = true;
-                break;
-            }
-        }
-        else
-        {
-            if (data[1].indexOf(word) >= 0 && haveWordWithoutKuohao(word, data))
-            {
-                ok = true;
-                break;
-            }
-        }
-    }
-    isTwoInclude = ok;
-}
-
-bool MainWindow::hasCunWord(QString data, QString data1, QString data2)
-{
-    QString cun = QString::fromWCharArray(L"存");
-
-    // 只能有一个存字
-    int count = 0;
-    for (int i=0; i<data.length(); i++)
-    {
-        if (data[i] == cun)
-        {
-            count++;
-        }
-    }
-    if (count != 1)
-    {
-        return false;
-    }
-
-    // 存前后是括号，返回false
-    if (data.indexOf(QString::fromWCharArray(L"(存)")) >= 0)
-    {
-        return false;
-    }
-
-    // 一二宫带有禄字，返回false
-    if (data1.indexOf(QString::fromWCharArray(L"禄")) >= 0 ||
-            data2.indexOf(QString::fromWCharArray(L"禄")) >= 0)
-    {
-        return false;
-    }
-
-    return true;
-}
-
-bool MainWindow::haveWordWithoutKuohao(QString word, QString data[4])
-{
-    for (int j=0; j<4; j++)
-    {
-        QString currentData = data[j];
-        for (int i=0; i<currentData.length(); i++)
-        {
-            if (currentData[i] == word)
-            {
-                if (i == 0 || currentData[i-1] != "(" || i == currentData.length() - 1
-                        || currentData[i+1] != ")")
-                {
-                    return true;
-                }
-            }
-        }
-    }
-
-    return false;
 }
 
 void MainWindow::onSaveImageButtonClicked()

@@ -5,6 +5,7 @@
 #include <QThread>
 #include <QDate>
 #include "datamodel.h"
+#include "../main/stockdatautil.h"
 
 class ContentBrowser: public QObject
 {
@@ -15,8 +16,6 @@ public:
 public:
     void run();
 
-    static bool parseOneLine(const QString& industryName, const QString& stockName, int dataType, const QString& line, StockData& stockData);
-
 signals:
     // 打印内容
     void printContent(QString content);
@@ -24,6 +23,9 @@ signals:
     void runFinish();
 
 private:
+    // 打印股票限.csv的内容
+    void printLimitContent(QString& content);
+
     void printYearContent(QString& content);
 
     void printMonthContent(QString& content);
