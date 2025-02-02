@@ -133,11 +133,17 @@ public:
     // 无损筛查，检查是否含设置的关键词
     static bool checkIfStockDataOkV2(StockData stockData, const FilterConditionV2& filterCondition);
 
-    // 按规则检查是否有存字
-    static bool hasCunWord(QString data, QString data1, QString data2);
+    // 按存特殊规则检查data是否有存字
+    static bool hasCunWord(const QString& data, QString gongDatas[DATA_FIELD_LENGTH], const QVector<int>& matchIndex);
 
-    // 检查4个宫格是否有不带括号的字
-    static bool haveWordWithoutKuohao(QString word, QString data[DATA_FIELD_LENGTH], QVector<int> matchIndex);
+    // 按禄特殊规则检查data是否有禄字
+    static bool hasLuWord(const QString& data, QString gongDatas[DATA_FIELD_LENGTH], const QVector<int>& matchIndex);
+
+    // 检查matchIndex指定的宫是否有不带括号的字
+    static bool haveWordWithoutKuohao(const QString& word, QString data[DATA_FIELD_LENGTH], const QVector<int>& matchIndex);
+
+    // 检查data是否有不带括号的字
+    static bool haveWordWithoutKuohao(const QString& word, const QString& data);
 
     // 解析股票一行数据
     // dataType STOCK_DATA_*

@@ -2,9 +2,11 @@
 #include <QStringList>
 #include <QDateTime>
 
-QString YiWord = QString::fromWCharArray(L"巳");
-QString WuWord = QString::fromWCharArray(L"午");
-QString WeiWord = QString::fromWCharArray(L"未");
+static QString YiWord = QString::fromWCharArray(L"巳");
+static QString WuWord = QString::fromWCharArray(L"午");
+static QString WeiWord = QString::fromWCharArray(L"未");
+static QString luWord = QString::fromWCharArray(L"禄");
+static QString cunWord = QString::fromWCharArray(L"存");
 
 bool StockDataUtil::checkIfStockDataOk(StockData stockData, const FilterCondition& filterCondition, bool matchAll)
 {
@@ -35,8 +37,8 @@ bool StockDataUtil::checkIfStockDataOk(StockData stockData, const FilterConditio
         stockData.m_data[5] += data5;
     }
 
-    // 删除：阳忌、昌科、曲科、阳（忌）、昌（科）、曲（科）
-    for (int i=0; i<DATA_FIELD_LENGTH; i++)
+    // 一二宫的：阳忌、昌科、曲科、阳（忌）、昌（科）、曲（科），科和忌不算，所以直接去除
+    for (int i=0; i<2; i++)
     {
         stockData.m_data[i].replace(QString::fromWCharArray(L"阳忌"), "");
         stockData.m_data[i].replace(QString::fromWCharArray(L"昌科"), "");
@@ -44,23 +46,7 @@ bool StockDataUtil::checkIfStockDataOk(StockData stockData, const FilterConditio
         stockData.m_data[i].replace(QString::fromWCharArray(L"阳(忌)"), "");
         stockData.m_data[i].replace(QString::fromWCharArray(L"昌(科)"), "");
         stockData.m_data[i].replace(QString::fromWCharArray(L"曲(科)"), "");
-    }
-
-    // 一二宫有存字，就删除禄字
-    if (data1.indexOf(QString::fromWCharArray(L"存")) >= 0 ||
-            data2.indexOf(QString::fromWCharArray(L"存")) >= 0)
-    {
-        stockData.m_data[0].replace(QString::fromWCharArray(L"禄"), "");
-        stockData.m_data[1].replace(QString::fromWCharArray(L"禄"), "");
-    }
-
-    // 一二宫有禄字，就删除存字
-    if (data1.indexOf(QString::fromWCharArray(L"禄")) >= 0 ||
-            data2.indexOf(QString::fromWCharArray(L"禄")) >= 0)
-    {
-        stockData.m_data[0].replace(QString::fromWCharArray(L"存"), "");
-        stockData.m_data[1].replace(QString::fromWCharArray(L"存"), "");
-    }
+    }    
 
     // matchAll True 全宫相关匹配，False 一宫不与四六宫匹配，二宫不与三五宫匹配
     QVector<int> m_oneMatches;
@@ -76,15 +62,22 @@ bool StockDataUtil::checkIfStockDataOk(StockData stockData, const FilterConditio
         {
             m_twoMatches.append(i);
         }
-    }
+    }    
 
     // 检查一宫不含，每个字都要满足
     for (int i=0; i<filterCondition.m_oneExclude.length(); i++)
     {
         QString word = filterCondition.m_oneExclude[i];
-        if (word == QString::fromWCharArray(L"存"))
+        if (word == cunWord)
         {
-            if (hasCunWord(stockData.m_data[0], stockData.m_data[0], stockData.m_data[1]))
+            if (hasCunWord(stockData.m_data[0], stockData.m_data, m_oneMatches))
+            {
+                return false;
+            }
+        }
+        else if (word == luWord)
+        {
+            if (hasLuWord(stockData.m_data[0], stockData.m_data, m_oneMatches))
             {
                 return false;
             }
@@ -102,9 +95,16 @@ bool StockDataUtil::checkIfStockDataOk(StockData stockData, const FilterConditio
     for (int i=0; i<filterCondition.m_twoExclude.length(); i++)
     {
         QString word = filterCondition.m_twoExclude[i];
-        if (word == QString::fromWCharArray(L"存"))
+        if (word == cunWord)
         {
-            if (hasCunWord(stockData.m_data[1], stockData.m_data[0], stockData.m_data[1]))
+            if (hasCunWord(stockData.m_data[1], stockData.m_data, m_twoMatches))
+            {
+                return false;
+            }
+        }
+        else if (word == luWord)
+        {
+            if (hasLuWord(stockData.m_data[1], stockData.m_data, m_twoMatches))
             {
                 return false;
             }
@@ -123,9 +123,17 @@ bool StockDataUtil::checkIfStockDataOk(StockData stockData, const FilterConditio
     for (int i=0; i<filterCondition.m_oneInclude.length(); i++)
     {
         QString word = filterCondition.m_oneInclude[i];
-        if (word == QString::fromWCharArray(L"存"))
+        if (word == cunWord)
         {
-            if (hasCunWord(stockData.m_data[0], stockData.m_data[0], stockData.m_data[1]))
+            if (hasCunWord(stockData.m_data[0], stockData.m_data, m_oneMatches))
+            {
+                ok = true;
+                break;
+            }
+        }
+        else if (word == luWord)
+        {
+            if (hasLuWord(stockData.m_data[0], stockData.m_data, m_oneMatches))
             {
                 ok = true;
                 break;
@@ -150,9 +158,17 @@ bool StockDataUtil::checkIfStockDataOk(StockData stockData, const FilterConditio
     for (int i=0; i<filterCondition.m_twoInclude.length(); i++)
     {
         QString word = filterCondition.m_twoInclude[i];
-        if (word == QString::fromWCharArray(L"存"))
+        if (word == cunWord)
         {
-            if (hasCunWord(stockData.m_data[1], stockData.m_data[0], stockData.m_data[1]))
+            if (hasCunWord(stockData.m_data[1], stockData.m_data, m_twoMatches))
+            {
+                ok = true;
+                break;
+            }
+        }
+        else if (word == luWord)
+        {
+            if (hasLuWord(stockData.m_data[1], stockData.m_data, m_twoMatches))
             {
                 ok = true;
                 break;
@@ -200,56 +216,117 @@ bool StockDataUtil::checkIfStockDataOkV2(StockData stockData, const FilterCondit
     return true;
 }
 
-bool StockDataUtil::hasCunWord(QString data, QString data1, QString data2)
+bool StockDataUtil::hasCunWord(const QString& data, QString gongDatas[DATA_FIELD_LENGTH], const QVector<int>&)
 {
-    QString cun = QString::fromWCharArray(L"存");
-
-    // 只能有一个存字
-    int count = 0;
-    for (int i=0; i<data.length(); i++)
+    // 没有存字，直接返回false
+    if (data.indexOf(cunWord) < 0)
     {
-        if (data[i] == cun)
+        return false;
+    }
+
+    // 如果一二宫有双存在，不管是同宫还是分宫，都不作存看
+    QString oneTwoGong = gongDatas[0] + gongDatas[1];
+    int count = 0;
+    for (int i=0; i<oneTwoGong.length(); i++)
+    {
+        if (data[i] == cunWord)
         {
             count++;
         }
     }
-    if (count != 1)
+    if (count >= 2)
     {
         return false;
     }
 
-    // 存前后是括号，返回false
-    if (data.indexOf(QString::fromWCharArray(L"(存)")) >= 0)
+    if (haveWordWithoutKuohao(cunWord, data))
     {
+        // 无括号的存，在一二宫遇到有或无括号的禄，都不作存看
+        if (gongDatas[0].indexOf(luWord) >= 0 || gongDatas[1].indexOf(luWord) >= 0)
+        {
+            return false;
+        }
+        else
+        {
+            return true;
+        }
+    }
+    else
+    {
+        // 有括号的存在一二宫无论什么情况都不会被筛出来
         return false;
     }
-
-    // 一二宫带有禄字，返回false
-    if (data1.indexOf(QString::fromWCharArray(L"禄")) >= 0 ||
-            data2.indexOf(QString::fromWCharArray(L"禄")) >= 0)
-    {
-        return false;
-    }
-
-    return true;
 }
 
-bool StockDataUtil::haveWordWithoutKuohao(QString word, QString data[DATA_FIELD_LENGTH], QVector<int> matchIndex)
+bool StockDataUtil::hasLuWord(const QString& data, QString gongDatas[DATA_FIELD_LENGTH], const QVector<int>& matchIndex)
+{
+    // 没有禄字，直接返回false
+    if (data.indexOf(luWord) < 0)
+    {
+        return false;
+    }
+
+    if (haveWordWithoutKuohao(luWord, data))
+    {
+        // 禄无括号，遇到一二宫有或无括号的存，都不作禄看
+        if (gongDatas[0].indexOf(cunWord) >= 0 || gongDatas[1].indexOf(cunWord) >= 0)
+        {
+            return false;
+        }
+        else
+        {
+            return true;
+        }
+    }
+    else
+    {
+        QVector<int> oneTwoIndex;
+        oneTwoIndex.push_back(0);
+        oneTwoIndex.push_back(1);
+
+        // 禄有括号，遇到一二宫无括号的存，才不作禄看
+        if (haveWordWithoutKuohao(cunWord, gongDatas, oneTwoIndex))
+        {
+            return false;
+        }
+
+        // 检查是否被其它宫无括号的禄激发
+        if (haveWordWithoutKuohao(luWord, gongDatas, matchIndex))
+        {
+            return true;
+        }
+        else
+        {
+            return false;
+        }
+    }
+}
+
+bool StockDataUtil::haveWordWithoutKuohao(const QString& word, const QString& data)
+{
+    for (int i=0; i<data.length(); i++)
+    {
+        if (data[i] == word)
+        {
+            if (i == 0 || data[i-1] != "(" || i == data.length() - 1
+                    || data[i+1] != ")")
+            {
+                return true;
+            }
+        }
+    }
+
+    return false;
+}
+
+bool StockDataUtil::haveWordWithoutKuohao(const QString& word, QString data[DATA_FIELD_LENGTH], const QVector<int>& matchIndex)
 {
     for (int t=0; t<matchIndex.size(); t++)
     {
         int j = matchIndex[t];
-        QString currentData = data[j];
-        for (int i=0; i<currentData.length(); i++)
+        if (haveWordWithoutKuohao(word, data[j]))
         {
-            if (currentData[i] == word)
-            {
-                if (i == 0 || currentData[i-1] != "(" || i == currentData.length() - 1
-                        || currentData[i+1] != ")")
-                {
-                    return true;
-                }
-            }
+            return true;
         }
     }
 

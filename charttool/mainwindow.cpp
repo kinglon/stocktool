@@ -225,6 +225,7 @@ void MainWindow::onLoadColorDataButtonClicked()
 {
     QString oneIncludeString = ui->oneIncludeEdit->text();
     QString twoIncludeString = ui->twoIncludeEdit->text();
+    bool matchAll = ui->matchAllCheckBox->isChecked();
     if (oneIncludeString.isEmpty() || twoIncludeString.isEmpty())
     {
         UiUtil::showTip(QString::fromWCharArray(L"请填写正确的一宫二宫含内容"));
@@ -249,7 +250,7 @@ void MainWindow::onLoadColorDataButtonClicked()
         {
             QString line = in.readLine();
             ColorData colorData;
-            if (!parseColorDataLine(line, colorData, oneIncludeString, twoIncludeString))
+            if (!parseColorDataLine(line, colorData, oneIncludeString, twoIncludeString, matchAll))
             {
                 continue;
             }
@@ -268,6 +269,7 @@ void MainWindow::onLoadAssist1ColorDataButtonClicked()
 {
     QString oneIncludeString = ui->oneIncludeEdit->text();
     QString twoIncludeString = ui->twoIncludeEdit->text();
+    bool matchAll = ui->matchAllCheckBox->isChecked();
     if (oneIncludeString.isEmpty() || twoIncludeString.isEmpty())
     {
         UiUtil::showTip(QString::fromWCharArray(L"请填写正确的一宫二宫含内容"));
@@ -292,7 +294,7 @@ void MainWindow::onLoadAssist1ColorDataButtonClicked()
         {
             QString line = in.readLine();
             ColorData colorData;
-            if (!parseColorDataLine(line, colorData, oneIncludeString, twoIncludeString))
+            if (!parseColorDataLine(line, colorData, oneIncludeString, twoIncludeString, matchAll))
             {
                 continue;
             }
@@ -311,6 +313,7 @@ void MainWindow::onLoadAssist2ColorDataButtonClicked()
 {
     QString oneIncludeString = ui->oneIncludeEdit->text();
     QString twoIncludeString = ui->twoIncludeEdit->text();
+    bool matchAll = ui->matchAllCheckBox->isChecked();
     if (oneIncludeString.isEmpty() || twoIncludeString.isEmpty())
     {
         UiUtil::showTip(QString::fromWCharArray(L"请填写正确的一宫二宫含内容"));
@@ -335,7 +338,7 @@ void MainWindow::onLoadAssist2ColorDataButtonClicked()
         {
             QString line = in.readLine();
             ColorData colorData;
-            if (!parseColorDataLine(line, colorData, oneIncludeString, twoIncludeString))
+            if (!parseColorDataLine(line, colorData, oneIncludeString, twoIncludeString, matchAll))
             {
                 continue;
             }
@@ -469,7 +472,7 @@ bool MainWindow::parseChartDataLine(const QString& line, ChartData& chartData)
     return true;
 }
 
-bool MainWindow::parseColorDataLine(const QString& line, ColorData& colorData, const QString& oneInclude, const QString& twoInclude)
+bool MainWindow::parseColorDataLine(const QString& line, ColorData& colorData, const QString& oneInclude, const QString& twoInclude, bool matchAll)
 {
     if (line.isEmpty())
     {
@@ -502,11 +505,11 @@ bool MainWindow::parseColorDataLine(const QString& line, ColorData& colorData, c
 
     FilterCondition filterCondition1;
     filterCondition1.m_oneInclude = oneInclude;
-    colorData.oneInclude = StockDataUtil::checkIfStockDataOk(stockData, filterCondition1, true);
+    colorData.oneInclude = StockDataUtil::checkIfStockDataOk(stockData, filterCondition1, matchAll);
 
     FilterCondition filterCondition2;
     filterCondition1.m_twoInclude = twoInclude;
-    colorData.twoInclude = StockDataUtil::checkIfStockDataOk(stockData, filterCondition2, true);
+    colorData.twoInclude = StockDataUtil::checkIfStockDataOk(stockData, filterCondition2, matchAll);
     return true;
 }
 

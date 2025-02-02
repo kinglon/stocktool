@@ -23,7 +23,7 @@ private:
 
     bool parseChartDataLine(const QString& line, ChartData& chartData);
 
-    bool parseColorDataLine(const QString& line, ColorData& colorData, const QString& oneInclude, const QString& twoInclude);
+    bool parseColorDataLine(const QString& line, ColorData& colorData, const QString& oneInclude, const QString& twoInclude, bool matchAll);
 
 private slots:
     // 加载主能量数据

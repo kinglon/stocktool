@@ -373,6 +373,13 @@
         </widget>
        </item>
        <item>
+        <widget class="QCheckBox" name="matchAllCheckBox">
+         <property name="text">
+          <string>全宫相关</string>
+         </property>
+        </widget>
+       </item>
+       <item>
         <widget class="QPushButton" name="addAvgLineButton">
          <property name="text">
           <string>添加均线</string>
