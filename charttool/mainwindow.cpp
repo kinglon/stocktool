@@ -508,7 +508,7 @@ bool MainWindow::parseColorDataLine(const QString& line, ColorData& colorData, c
     colorData.oneInclude = StockDataUtil::checkIfStockDataOk(stockData, filterCondition1, matchAll);
 
     FilterCondition filterCondition2;
-    filterCondition1.m_twoInclude = twoInclude;
+    filterCondition2.m_twoInclude = twoInclude;
     colorData.twoInclude = StockDataUtil::checkIfStockDataOk(stockData, filterCondition2, matchAll);
     return true;
 }

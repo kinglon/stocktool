@@ -20,19 +20,19 @@ bool StockDataUtil::checkIfStockDataOk(StockData stockData, const FilterConditio
     QString data2 = stockData.m_data[1];
     QString data5 = stockData.m_data[4];
     QString data6 = stockData.m_data[5];
-    if (stockData.m_data[0].indexOf(QString::fromWCharArray(L"空")) >= 0)
+    if (data1.indexOf(QString::fromWCharArray(L"空")) >= 0)
     {
         stockData.m_data[0] += data2;
     }
-    if (stockData.m_data[1].indexOf(QString::fromWCharArray(L"空")) >= 0)
+    if (data2.indexOf(QString::fromWCharArray(L"空")) >= 0)
     {
         stockData.m_data[1] += data1;
     }
-    if (stockData.m_data[4].indexOf(QString::fromWCharArray(L"空")) >= 0)
+    if (data5.indexOf(QString::fromWCharArray(L"空")) >= 0)
     {
         stockData.m_data[4] += data6;
     }
-    if (stockData.m_data[5].indexOf(QString::fromWCharArray(L"空")) >= 0)
+    if (data6.indexOf(QString::fromWCharArray(L"空")) >= 0)
     {
         stockData.m_data[5] += data5;
     }
@@ -229,7 +229,7 @@ bool StockDataUtil::hasCunWord(const QString& data, QString gongDatas[DATA_FIELD
     int count = 0;
     for (int i=0; i<oneTwoGong.length(); i++)
     {
-        if (data[i] == cunWord)
+        if (oneTwoGong[i] == cunWord)
         {
             count++;
         }
