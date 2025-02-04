@@ -7,6 +7,7 @@ static QString WuWord = QString::fromWCharArray(L"午");
 static QString WeiWord = QString::fromWCharArray(L"未");
 static QString luWord = QString::fromWCharArray(L"禄");
 static QString cunWord = QString::fromWCharArray(L"存");
+static QString jiWord = QString::fromWCharArray(L"忌");
 
 bool StockDataUtil::checkIfStockDataOk(StockData stockData, const FilterCondition& filterCondition, bool matchAll)
 {
@@ -82,6 +83,13 @@ bool StockDataUtil::checkIfStockDataOk(StockData stockData, const FilterConditio
                 return false;
             }
         }
+        else if (word == jiWord)
+        {
+            if (hasJiWord(true, stockData.m_data, m_oneMatches))
+            {
+                return false;
+            }
+        }
         else
         {
             if (stockData.m_data[0].indexOf(word) >= 0 && haveWordWithoutKuohao(word, stockData.m_data, m_oneMatches))
@@ -105,6 +113,13 @@ bool StockDataUtil::checkIfStockDataOk(StockData stockData, const FilterConditio
         else if (word == luWord)
         {
             if (hasLuWord(stockData.m_data[1], stockData.m_data, m_twoMatches))
+            {
+                return false;
+            }
+        }
+        else if (word == jiWord)
+        {
+            if (hasJiWord(false, stockData.m_data, m_twoMatches))
             {
                 return false;
             }
@@ -134,6 +149,14 @@ bool StockDataUtil::checkIfStockDataOk(StockData stockData, const FilterConditio
         else if (word == luWord)
         {
             if (hasLuWord(stockData.m_data[0], stockData.m_data, m_oneMatches))
+            {
+                ok = true;
+                break;
+            }
+        }
+        else if (word == jiWord)
+        {
+            if (hasJiWord(true, stockData.m_data, m_oneMatches))
             {
                 ok = true;
                 break;
@@ -169,6 +192,14 @@ bool StockDataUtil::checkIfStockDataOk(StockData stockData, const FilterConditio
         else if (word == luWord)
         {
             if (hasLuWord(stockData.m_data[1], stockData.m_data, m_twoMatches))
+            {
+                ok = true;
+                break;
+            }
+        }
+        else if (word == jiWord)
+        {
+            if (hasJiWord(false, stockData.m_data, m_twoMatches))
             {
                 ok = true;
                 break;
@@ -299,6 +330,39 @@ bool StockDataUtil::hasLuWord(const QString& data, QString gongDatas[DATA_FIELD_
         {
             return false;
         }
+    }
+}
+
+bool StockDataUtil::hasJiWord(bool checkOneGong, QString gongDatas[DATA_FIELD_LENGTH], const QVector<int>& matchIndex)
+{
+    static QVector<QString> keyWords;
+    if (keyWords.empty())
+    {
+        keyWords.append(QString::fromWCharArray(L"阳（忌）忌"));
+        keyWords.append(QString::fromWCharArray(L"阳（权）忌"));
+        keyWords.append(QString::fromWCharArray(L"阳（科）忌"));
+        keyWords.append(QString::fromWCharArray(L"阳（禄）忌"));
+        keyWords.append(QString::fromWCharArray(L"阳忌"));
+    }
+
+    QString copyGongDatas[DATA_FIELD_LENGTH];
+    for (int i=0; i<DATA_FIELD_LENGTH; i++)
+    {
+        copyGongDatas[i] = gongDatas[i];
+        for (const auto& keyWord : keyWords)
+        {
+            copyGongDatas[i].replace(keyWord, "");
+        }
+    }
+
+    QString data = checkOneGong?copyGongDatas[0]:copyGongDatas[1];
+    if (data.indexOf(jiWord) >= 0 && haveWordWithoutKuohao(jiWord, copyGongDatas, matchIndex))
+    {
+        return true;
+    }
+    else
+    {
+        return false;
     }
 }
 

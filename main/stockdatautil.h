@@ -139,6 +139,9 @@ public:
     // 按禄特殊规则检查data是否有禄字
     static bool hasLuWord(const QString& data, QString gongDatas[DATA_FIELD_LENGTH], const QVector<int>& matchIndex);
 
+    // 按忌特殊规则检查data是否有忌字
+    static bool hasJiWord(bool checkOneGong, QString gongDatas[DATA_FIELD_LENGTH], const QVector<int>& matchIndex);
+
     // 检查matchIndex指定的宫是否有不带括号的字
     static bool haveWordWithoutKuohao(const QString& word, QString data[DATA_FIELD_LENGTH], const QVector<int>& matchIndex);
 

@@ -618,19 +618,7 @@ void FilterDataController::run(const FilterParam& filterParam)
         emit printLog(QString::fromWCharArray(L"过滤器名字为空"));
         emit runFinish();
         return;
-    }
-
-    bool delDetailDir = filterParam.m_notLossFilter || !filterParam.m_onlyFilterHour;
-    if (delDetailDir)
-    {
-        QString savePath = QString::fromStdWString(CImPath::GetDataPath()) + m_name + QString::fromWCharArray(L"\\");
-        if (!MergeDataController::removeDir(savePath))
-        {
-            emit printLog(QString::fromWCharArray(L"无法删除明细目录，请先关闭已打开的文件。"));
-            emit runFinish();
-            return;
-        }
-    }
+    }    
 
     emit printLog(QString::fromWCharArray(L"开始筛选数据"));
 
@@ -856,7 +844,8 @@ void FilterDataController::saveStockData()
         }
     }
 
-    QString resultFilePath = QString::fromStdWString(CImPath::GetDataPath()) + m_name + QString::fromWCharArray(L".txt");
+    QString now = QDateTime::currentDateTime().toString("yyyyMMdd_hhmmss");
+    QString resultFilePath = QString::fromStdWString(CImPath::GetDataPath()) + m_name + "_" + now + QString::fromWCharArray(L".txt");
     QFile resultFile(resultFilePath);
     if (resultFile.open(QFile::WriteOnly))
     {
@@ -922,7 +911,8 @@ void FilterDataController::saveStockDataDetail(int begin, int end)
         return;
     }
 
-    QString savePath = QString::fromStdWString(CImPath::GetDataPath()) + m_name + QString::fromWCharArray(L"\\");
+    QString now = QDateTime::currentDateTime().toString("yyyyMMdd_hhmmss");
+    QString savePath = QString::fromStdWString(CImPath::GetDataPath()) + m_name + "_" + now + QString::fromWCharArray(L"\\");
     QDir dir;
     if (!dir.exists(savePath))
     {
