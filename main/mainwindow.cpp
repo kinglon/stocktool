@@ -4,11 +4,11 @@
 #include <QDateTime>
 #include <QFileDialog>
 #include "Utility/LogUtil.h"
-#include "loaddatacontroller.h"
+#include "../stock/loaddatacontroller.h"
 #include "filterdatacontroller.h"
 #include "daymergedatacontroller.h"
 #include "monthmergedatacontroller.h"
-#include "datamanager.h"
+#include "../stock/datamanager.h"
 #include "notlossfilterdialog.h"
 
 MainWindow::MainWindow(QWidget *parent)

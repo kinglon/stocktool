@@ -4,8 +4,8 @@
 #include <QObject>
 #include <QDate>
 #include <QThread>
-#include "datamanager.h"
-#include "stockdatautil.h"
+#include "../stock/datamanager.h"
+#include "../stock/stockdatautil.h"
 
 class FilterParam
 {

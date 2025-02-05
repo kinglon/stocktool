@@ -4,7 +4,7 @@
 #include <QDir>
 #include <QTextStream>
 #include <QDateTime>
-#include "Utility/ImPath.h"
+#include "../Utility/ImPath.h"
 #include "stockdatautil.h"
 
 StockFileScanner::StockFileScanner(QObject *parent)

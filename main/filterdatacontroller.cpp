@@ -6,7 +6,7 @@
 #include <QUrl>
 #include "Utility/ImPath.h"
 #include "settingmanager.h"
-#include "datamanager.h"
+#include "../stock/datamanager.h"
 #include "mergedatacontroller.h"
 
 #define PREFIX_SPACE_COUNT  12

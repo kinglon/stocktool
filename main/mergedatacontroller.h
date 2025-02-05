@@ -4,7 +4,7 @@
 #include <QObject>
 #include <QDate>
 #include <QThread>
-#include "datamanager.h"
+#include "../stock/datamanager.h"
 
 class DayLineData
 {

@@ -2,7 +2,6 @@
 #define DATAMANAGER_H
 
 #include <QVector>
-#include "datamodel.h"
 #include "stockdatautil.h"
 
 class DataManager

@@ -3,7 +3,6 @@
 
 #include <QObject>
 #include <QThread>
-#include "datamodel.h"
 #include "datamanager.h"
 
 class StockFileScanner: public QObject

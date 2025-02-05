@@ -7,8 +7,8 @@
 #include <QTextStream>
 #include "Utility/ImPath.h"
 #include "settingmanager.h"
-#include "datamanager.h"
-#include "loaddatacontroller.h"
+#include "../stock/datamanager.h"
+#include "../stock/loaddatacontroller.h"
 
 DataMerger::DataMerger(QObject *parent)
     : QObject{parent}

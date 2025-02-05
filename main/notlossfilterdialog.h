@@ -3,7 +3,7 @@
 
 #include <QDialog>
 #include <QDate>
-#include "stockdatautil.h"
+#include "../stock/stockdatautil.h"
 
 namespace Ui {
 class NotLossFilterDialog;

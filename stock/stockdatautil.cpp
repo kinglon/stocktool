@@ -38,13 +38,11 @@ bool StockDataUtil::checkIfStockDataOk(StockData stockData, const FilterConditio
         stockData.m_data[5] += data5;
     }
 
-    // 一二宫的：阳忌、昌科、曲科、阳（忌）、昌（科）、曲（科），科和忌不算，所以直接去除
+    // 一二宫的：昌科、曲科、昌（科）、曲（科），科不算，所以直接去除
     for (int i=0; i<2; i++)
-    {
-        stockData.m_data[i].replace(QString::fromWCharArray(L"阳忌"), "");
+    {       
         stockData.m_data[i].replace(QString::fromWCharArray(L"昌科"), "");
         stockData.m_data[i].replace(QString::fromWCharArray(L"曲科"), "");
-        stockData.m_data[i].replace(QString::fromWCharArray(L"阳(忌)"), "");
         stockData.m_data[i].replace(QString::fromWCharArray(L"昌(科)"), "");
         stockData.m_data[i].replace(QString::fromWCharArray(L"曲(科)"), "");
     }    
@@ -338,10 +336,10 @@ bool StockDataUtil::hasJiWord(bool checkOneGong, QString gongDatas[DATA_FIELD_LE
     static QVector<QString> keyWords;
     if (keyWords.empty())
     {
-        keyWords.append(QString::fromWCharArray(L"阳（忌）忌"));
-        keyWords.append(QString::fromWCharArray(L"阳（权）忌"));
-        keyWords.append(QString::fromWCharArray(L"阳（科）忌"));
-        keyWords.append(QString::fromWCharArray(L"阳（禄）忌"));
+        keyWords.append(QString::fromWCharArray(L"阳(忌)忌"));
+        keyWords.append(QString::fromWCharArray(L"阳(权)忌"));
+        keyWords.append(QString::fromWCharArray(L"阳(科)忌"));
+        keyWords.append(QString::fromWCharArray(L"阳(禄)忌"));
         keyWords.append(QString::fromWCharArray(L"阳忌"));
     }
 

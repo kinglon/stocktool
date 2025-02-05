@@ -3,7 +3,7 @@
 #include <QString>
 #include <QVector>
 #include "datamodel.h"
-#include "stockdatautil.h"
+#include "../stock/stockdatautil.h"
 
 // 过滤条件索引
 #define YEAR_FILTER_CONDTION        0

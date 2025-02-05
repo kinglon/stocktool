@@ -6,7 +6,7 @@
 #include <QDateTime>
 #include "datamanager.h"
 #include "uiutil.h"
-#include "../main/stockdatautil.h"
+#include "../stock/stockdatautil.h"
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
