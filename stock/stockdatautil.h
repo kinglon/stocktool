@@ -133,14 +133,23 @@ public:
     // 无损筛查，检查是否含设置的关键词
     static bool checkIfStockDataOkV2(StockData stockData, const FilterConditionV2& filterCondition);
 
-    // 按存特殊规则检查data是否有存字
-    static bool hasCunWord(const QString& data, QString gongDatas[DATA_FIELD_LENGTH], const QVector<int>& matchIndex);
+    // 检查data是否有存字
+    static bool hasCunWord(bool checkOneGong, QString gongDatas[DATA_FIELD_LENGTH], const QVector<int>& matchIndex);
 
-    // 按禄特殊规则检查data是否有禄字
-    static bool hasLuWord(const QString& data, QString gongDatas[DATA_FIELD_LENGTH], const QVector<int>& matchIndex);
+    // 检查data是否有禄字
+    static bool hasLuWord(bool checkOneGong, QString gongDatas[DATA_FIELD_LENGTH], const QVector<int>& matchIndex);
 
-    // 按忌特殊规则检查data是否有忌字
+    // 检查data是否有忌字
     static bool hasJiWord(bool checkOneGong, QString gongDatas[DATA_FIELD_LENGTH], const QVector<int>& matchIndex);
+
+    // 检查data是否有科字
+    static bool hasKeWord(bool checkOneGong, QString gongDatas[DATA_FIELD_LENGTH], const QVector<int>& matchIndex);
+
+    // 检查data是否有权字
+    static bool hasQuanWord(bool checkOneGong, QString gongDatas[DATA_FIELD_LENGTH], const QVector<int>& matchIndex);
+
+    // 检查是否有关键字，word只有一个字
+    static bool hasWord(const QString& word, bool checkOneGong, QString gongDatas[DATA_FIELD_LENGTH], const QVector<int>& matchIndex);
 
     // 检查matchIndex指定的宫是否有不带括号的字
     static bool haveWordWithoutKuohao(const QString& word, QString data[DATA_FIELD_LENGTH], const QVector<int>& matchIndex);
