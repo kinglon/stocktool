@@ -19,7 +19,7 @@
      <rect>
       <x>10</x>
       <y>10</y>
-      <width>711</width>
+      <width>719</width>
       <height>501</height>
      </rect>
     </property>
@@ -183,6 +183,13 @@
         <widget class="QCheckBox" name="orderCheckBox">
          <property name="text">
           <string>升序</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QCheckBox" name="matchAllCheckBox">
+         <property name="text">
+          <string>全宫相关</string>
          </property>
         </widget>
        </item>

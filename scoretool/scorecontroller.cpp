@@ -99,7 +99,7 @@ void DataScorer::score(QDate date)
                 {
                     filterCondition.m_twoInclude = words[j];
                 }
-                bool ok = StockDataUtil::checkIfStockDataOk(stockData, filterCondition, true);
+                bool ok = StockDataUtil::checkIfStockDataOk(stockData, filterCondition, m_matchAll);
                 scoreResult.m_hasWords[i*words.size()+j] = ok;
             }
         }
@@ -290,6 +290,7 @@ void ScoreDataController::run(const ScoreParam& scorerParam)
 
         DataScorer* dataScorer = new DataScorer();
         dataScorer->m_scoreDataType = scorerParam.m_dataType;
+        dataScorer->m_matchAll = scorerParam.m_matchAll;
         dataScorer->m_beginDate = begin;
         dataScorer->m_endDate = end;
 

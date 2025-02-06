@@ -132,7 +132,7 @@ private:
 
     void saveStockDataDetail();
 
-    void saveStockDataDetail(int begin, int end);
+    void saveStockDataDetail(QString savePath, int begin, int end);
 
     void saveStockHourDataSummaryInfo();
 

@@ -162,6 +162,7 @@ void MainWindow::onScoreButtonClicked()
     scoreParam.m_beginDate = beginDate;
     scoreParam.m_endDate = endDate;
     scoreParam.m_dataType = ui->dataTypeComboBox->currentData().toInt();
+    scoreParam.m_matchAll = ui->matchAllCheckBox->isChecked();
     scoreParam.m_isGetMax = ui->getMaxButton->isChecked();
     if (!scoreParam.m_isGetMax)
     {

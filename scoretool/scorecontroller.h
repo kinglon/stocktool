@@ -29,6 +29,9 @@ public:
 
     // 打分的数据类型
     int m_dataType = STOCK_DATA_DAY;
+
+    // 标志是否全宫相关
+    bool m_matchAll = false;
 };
 
 class ScoreResult
@@ -102,6 +105,9 @@ public:
     QDate m_beginDate;
 
     QDate m_endDate;
+
+    // 标志是否全宫相关
+    bool m_matchAll = false;
 
     QVector<ScoreResult> m_scoreResults;
 };

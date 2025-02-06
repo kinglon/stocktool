@@ -869,6 +869,10 @@ void FilterDataController::saveStockDataDetail()
 
     emit printLog(QString::fromWCharArray(L"开始保存明细数据"));
 
+    QString now = QDateTime::currentDateTime().toString("yyyyMMdd_hhmmss");
+    QString savePath = QString::fromStdWString(CImPath::GetDataPath()) + m_name + "_" + now + QString::fromWCharArray(L"\\");
+    QDir().mkpath(savePath);
+
     // 按行业、股票名称、时间排序
     std::sort(m_stockDatas.begin(), m_stockDatas.end(), [](const StockData& a, const StockData& b) {
         return a.m_industryName < b.m_industryName
@@ -891,7 +895,7 @@ void FilterDataController::saveStockDataDetail()
 
         if (newStock)
         {
-            saveStockDataDetail(begin, end);
+            saveStockDataDetail(savePath, begin, end);
             begin = end;
             industryName = m_stockDatas[end].m_industryName;
             stockName = m_stockDatas[end].m_stockName;
@@ -899,29 +903,22 @@ void FilterDataController::saveStockDataDetail()
     }
 
     // 最后一只股票
-    saveStockDataDetail(begin, end);
+    saveStockDataDetail(savePath, begin, end);
 
     emit printLog(QString::fromWCharArray(L"保存明细数据完成"));
 }
 
-void FilterDataController::saveStockDataDetail(int begin, int end)
+void FilterDataController::saveStockDataDetail(QString savePath, int begin, int end)
 {
     if (begin >= end)
     {
         return;
-    }
-
-    QString now = QDateTime::currentDateTime().toString("yyyyMMdd_hhmmss");
-    QString savePath = QString::fromStdWString(CImPath::GetDataPath()) + m_name + "_" + now + QString::fromWCharArray(L"\\");
-    QDir dir;
-    if (!dir.exists(savePath))
-    {
-        dir.mkpath(savePath);
-    }
+    }    
 
     if (!m_stockDatas[begin].m_industryName.isEmpty())
     {
         savePath += m_stockDatas[begin].m_industryName + "\\";
+        QDir dir;
         if (!dir.exists(savePath))
         {
             dir.mkpath(savePath);
