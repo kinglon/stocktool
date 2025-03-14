@@ -6,6 +6,7 @@
 #include <QDateTime>
 #include "../Utility/ImPath.h"
 #include "stockdatautil.h"
+#include <QtMath>
 
 StockFileScanner::StockFileScanner(QObject *parent)
     : QObject{parent}
@@ -23,8 +24,9 @@ void StockFileScanner::run()
     suffixes.append(QString::fromWCharArray(L"月.csv"));
     suffixes.append(QString::fromWCharArray(L"日.csv"));
     suffixes.append(QString::fromWCharArray(L"时.csv"));
+    suffixes.append(QString::fromWCharArray(L"限.csv"));
     foreach (const QFileInfo &fileInfo, fileInfoList)
-    {
+    {               
         bool found = false;
         foreach(const QString& suffix, suffixes)
         {
@@ -37,9 +39,23 @@ void StockFileScanner::run()
             }
         }
 
-        // 行业下加载
-        if (!found)
+        if (found)
         {
+            // 添加日线文件
+            QFileInfoList subFileInfoList = QDir(fileInfo.absoluteFilePath()).entryInfoList(QDir::Files);
+            foreach (const QFileInfo &subFileInfo, subFileInfoList)
+            {
+                if (subFileInfo.fileName().indexOf(QString::fromWCharArray(L"日线")) >= 0)
+                {
+                    m_stockFiles.append(subFileInfo.absoluteFilePath());
+                    m_industryNames.append("");
+                    break;
+                }
+            }
+        }
+        else
+        {
+            // 行业下加载
             QDir subDir(fileInfo.absoluteFilePath());
             QFileInfoList subFileInfoList = subDir.entryInfoList(filters);
             foreach (const QFileInfo &subFileInfo, subFileInfoList)
@@ -51,6 +67,18 @@ void StockFileScanner::run()
                     {
                         m_stockFiles.append(filePath);
                         m_industryNames.append(fileInfo.fileName());
+                    }
+                }
+
+                // 添加日线文件
+                QFileInfoList subSubFileInfoList = QDir(subFileInfo.absoluteFilePath()).entryInfoList(QDir::Files);
+                foreach (const QFileInfo &subSubFileInfo, subSubFileInfoList)
+                {
+                    if (subSubFileInfo.fileName().indexOf(QString::fromWCharArray(L"日线")) >= 0)
+                    {
+                        m_stockFiles.append(subSubFileInfo.absoluteFilePath());
+                        m_industryNames.append(fileInfo.fileName());
+                        break;
                     }
                 }
             }
@@ -73,26 +101,41 @@ void StockFileLoader::run()
         const QString& industryName = m_industryNames[i];
         QFileInfo fileInfo(stockFile);
         QString fileName = fileInfo.fileName();
-        QString stockName;
-        int dataType = -1;
-        if (!getStockNameAndType(fileName, stockName, dataType))
+        if (fileName.indexOf(QString::fromWCharArray(L"日线")) >= 0)
         {
-            continue;
+            // 日线数据另外加载
+            loadDayLineData(industryName, stockFile);
+        }
+        else
+        {
+            QString stockName;
+            int dataType = -1;
+            if (!getStockNameAndType(fileName, stockName, dataType))
+            {
+                continue;
+            }
+
+            QFile file(stockFile);
+            if (!file.open(QIODevice::ReadOnly | QIODevice::Text))
+            {
+                qCritical("failed to open file: %s", stockFile.toStdString().c_str());
+                continue;
+            }
+            QTextStream in(&file);
+            while (!in.atEnd())
+            {
+                QString line = in.readLine();
+                processOneLine(industryName, stockName, dataType, line);
+            }
+            file.close();
         }
 
-        QFile file(stockFile);
-        if (!file.open(QIODevice::ReadOnly | QIODevice::Text))
+        m_count++;
+        if (m_count % 1000 == 0)
         {
-            qCritical("failed to open file: %s", stockFile.toStdString().c_str());
-            continue;
+            emit reportProgress(m_count);
+            m_count = 0;
         }
-        QTextStream in(&file);
-        while (!in.atEnd())
-        {
-            QString line = in.readLine();
-            processOneLine(industryName, stockName, dataType, line);
-        }
-        file.close();
     }
     emit runFinish(this);
 }
@@ -109,27 +152,36 @@ bool StockFileLoader::getStockNameAndType(const QString& fileName, QString& stoc
     stockName = fileName.left(fileName.length()-5);  // 5是尾部“年.csv”的长度
     QString typeChar = fileName[stockName.length()];
 
-    QVector<QString> types;
-    types.append(QString::fromWCharArray(L"年"));
-    types.append(QString::fromWCharArray(L"月"));
-    types.append(QString::fromWCharArray(L"日"));
-    types.append(QString::fromWCharArray(L"时"));
-    type = -1;
-    for (int i=0; i<types.size(); i++)
+    if (typeChar == QString::fromWCharArray(L"年"))
     {
-        if (typeChar == types[i])
-        {
-            type = i;
-            break;
-        }
+        type = STOCK_DATA_YEAR;
+        return true;
     }
-    if (type == -1)
+    else if (typeChar == QString::fromWCharArray(L"月"))
+    {
+        type = STOCK_DATA_MONTH;
+        return true;
+    }
+    else if (typeChar == QString::fromWCharArray(L"日"))
+    {
+        type = STOCK_DATA_DAY;
+        return true;
+    }
+    else if (typeChar == QString::fromWCharArray(L"时"))
+    {
+        type = STOCK_DATA_HOUR;
+        return true;
+    }
+    else if (typeChar == QString::fromWCharArray(L"限"))
+    {
+        type = STOCK_DATA_XIAN;
+        return true;
+    }
+    else
     {
         qCritical("wrong file name: %s", fileName.toStdString().c_str());
         return false;
     }
-
-    return true;
 }
 
 void StockFileLoader::processOneLine(const QString& industryName, const QString& stockName, int dataType, const QString& line)
@@ -159,20 +211,251 @@ void StockFileLoader::processOneLine(const QString& industryName, const QString&
     else
     {
         m_stockDatas[dataType].append(stockData);
+    }    
+}
+
+void StockFileLoader::loadDayLineData(const QString& industryName, const QString& dayLineFilePath)
+{
+    // 获取股票名字
+    QFile file(dayLineFilePath);
+    QStringList parts = file.fileName().split("_");
+    if (parts.empty())
+    {
+        return;
+    }
+    QString stockName = parts[0];
+
+    // 读取文件内容，解析数据
+    QVector<DayLineData> dayLineDatas;
+    if (!file.open(QIODevice::ReadOnly | QIODevice::Text))
+    {
+        qCritical("failed to open file: %s", dayLineFilePath.toStdString().c_str());
+        return;
+    }
+    QTextStream in(&file);
+    while (!in.atEnd())
+    {
+        QString line = in.readLine();
+        processOneLineOfDayLine(industryName, stockName, line, dayLineDatas);
+    }
+    file.close();
+
+    if (dayLineDatas.empty())
+    {
+        return;
     }
 
-    m_count++;
-    if (m_count % 1000 == 0)
+    m_dayLineDatas->append(dayLineDatas);
+
+    // 统计年的数据
+    calculateDayLineYear(dayLineDatas);
+
+    // 统计月的数据
+    calculateDayLineMonth(dayLineDatas);
+}
+
+void StockFileLoader::calculateDayLineYear(const QVector<DayLineData>& dayLineDatas)
+{
+    int currentYear = 0;
+    int totalDay = 0;
+    float startKaiPan = 0.0f;
+    float totalHuanShou = 0.0f;
+    for (int i=0; i<dayLineDatas.size(); i++)
     {
-        emit reportProgress(m_count);
-        m_count = 0;
+        const DayLineData& current = dayLineDatas[i];
+        QDate currentDate = QDateTime::fromSecsSinceEpoch(current.m_beginTime).date();
+        if (currentYear == 0)
+        {
+            // 年开始
+            currentYear = currentDate.year();
+            totalDay = 1;
+            startKaiPan = current.m_kaiPan;
+            totalHuanShou = current.m_huanShou;
+            continue;
+        }
+
+        if (currentDate.year() == currentYear)
+        {
+            totalDay += 1;
+            totalHuanShou += current.m_huanShou;
+            continue;
+        }
+        else
+        {
+            // 新的一年
+            DayLineData dayLineData;
+            dayLineData.m_industryName = dayLineDatas[0].m_industryName;
+            dayLineData.m_stockName = dayLineDatas[0].m_stockName;
+            QDateTime beginDateTime;
+            beginDateTime.setDate(QDate(currentYear, 1, 1));
+            dayLineData.m_beginTime = beginDateTime.toSecsSinceEpoch();
+            dayLineData.m_endTime = beginDateTime.addYears(1).toSecsSinceEpoch() - 1;
+            dayLineData.m_totalDay = totalDay;
+            if (qAbs(startKaiPan) >= 0.00001)
+            {
+                dayLineData.m_zhangFu = (dayLineDatas[i-1].m_kaiPan - startKaiPan) / startKaiPan *100;
+            }
+            dayLineData.m_huanShou = totalHuanShou;
+            m_dayLineDatas[STOCK_DATA_YEAR].append(dayLineData);
+
+            currentYear = 0;
+            i--;
+        }
     }
+
+    // 最后一个
+    DayLineData dayLineData;
+    dayLineData.m_industryName = dayLineDatas[0].m_industryName;
+    dayLineData.m_stockName = dayLineDatas[0].m_stockName;
+    QDateTime beginDateTime;
+    beginDateTime.setDate(QDate(currentYear, 1, 1));
+    dayLineData.m_beginTime = beginDateTime.toSecsSinceEpoch();
+    dayLineData.m_endTime = beginDateTime.addYears(1).toSecsSinceEpoch() - 1;
+    dayLineData.m_totalDay = totalDay;
+    if (qAbs(startKaiPan) >= 0.00001)
+    {
+        dayLineData.m_zhangFu = (dayLineDatas[dayLineDatas.size()-1].m_kaiPan - startKaiPan) / startKaiPan *100;
+    }
+    dayLineData.m_huanShou = totalHuanShou;
+    m_dayLineDatas[STOCK_DATA_YEAR].append(dayLineData);
+}
+
+void StockFileLoader::calculateDayLineMonth(const QVector<DayLineData>& dayLineDatas)
+{
+    int currentMonth = -1;
+    int currentYear = 0;
+    int totalDay = 0;
+    float startKaiPan = 0.0f;
+    float totalHuanShou = 0.0f;
+    for (int i=0; i<dayLineDatas.size(); i++)
+    {
+        const DayLineData& current = dayLineDatas[i];
+        QDate currentDate = QDateTime::fromSecsSinceEpoch(current.m_beginTime).date();
+        if (currentMonth == -1)
+        {
+            // 月开始
+            currentMonth = currentDate.month();
+            currentYear = currentDate.year();
+            totalDay = 1;
+            startKaiPan = current.m_kaiPan;
+            totalHuanShou = current.m_huanShou;
+            continue;
+        }
+
+        if (currentDate.month() == currentMonth)
+        {
+            totalDay += 1;
+            totalHuanShou += current.m_huanShou;
+            continue;
+        }
+        else
+        {
+            // 新的一月
+            DayLineData dayLineData;
+            dayLineData.m_industryName = dayLineDatas[0].m_industryName;
+            dayLineData.m_stockName = dayLineDatas[0].m_stockName;
+            QDateTime beginDateTime;
+            beginDateTime.setDate(QDate(currentYear, currentMonth, 1));
+            dayLineData.m_beginTime = beginDateTime.toSecsSinceEpoch();
+            dayLineData.m_endTime = beginDateTime.addMonths(1).toSecsSinceEpoch() - 1;
+            dayLineData.m_totalDay = totalDay;
+            if (qAbs(startKaiPan) >= 0.00001)
+            {
+                dayLineData.m_zhangFu = (dayLineDatas[i-1].m_kaiPan - startKaiPan) / startKaiPan *100;
+            }
+            dayLineData.m_huanShou = totalHuanShou;
+            m_dayLineDatas[STOCK_DATA_MONTH].append(dayLineData);
+
+            currentMonth = -1;
+            i--;
+        }
+    }
+
+    // 最后一个
+    DayLineData dayLineData;
+    dayLineData.m_industryName = dayLineDatas[0].m_industryName;
+    dayLineData.m_stockName = dayLineDatas[0].m_stockName;
+    QDateTime beginDateTime;
+    beginDateTime.setDate(QDate(currentYear, currentMonth, 1));
+    dayLineData.m_beginTime = beginDateTime.toSecsSinceEpoch();
+    dayLineData.m_endTime = beginDateTime.addMonths(1).toSecsSinceEpoch() - 1;
+    dayLineData.m_totalDay = totalDay;
+    if (qAbs(startKaiPan) >= 0.00001)
+    {
+        dayLineData.m_zhangFu = (dayLineDatas[dayLineDatas.size()-1].m_kaiPan - startKaiPan) / startKaiPan *100;
+    }
+    dayLineData.m_huanShou = totalHuanShou;
+    m_dayLineDatas[STOCK_DATA_MONTH].append(dayLineData);
+}
+
+void StockFileLoader::processOneLineOfDayLine(const QString& industryName, const QString& stockName,
+                                              const QString& line, QVector<DayLineData>& dayLineDatas)
+{
+    if (line.isEmpty())
+    {
+        return;
+    }
+
+    QStringList fields = line.split(',');
+    if (fields.length() < 11) // 至少要有11个字段
+    {
+        return;
+    }
+
+    QStringList newFields;
+    for (auto& field : fields)
+    {
+        // 去除前后双引号
+        QString subString = field.mid(1, field.length()-2);
+        if (subString.isEmpty())
+        {
+            return;
+        }
+        newFields.append(subString);
+    }
+
+    if (newFields[0] == QString::fromWCharArray(L"时间"))
+    {
+        return;
+    }
+
+    DayLineData dayLineData;
+    dayLineData.m_industryName = industryName;
+    dayLineData.m_stockName = stockName;
+    QDateTime day = QDateTime::fromString(newFields[0], "yyyy/M/d");
+    if (!day.isValid())
+    {
+        return;
+    }
+    dayLineData.m_beginTime = day.toSecsSinceEpoch();
+    dayLineData.m_endTime = day.addDays(1).toSecsSinceEpoch() - 1;
+
+    bool ok = false;
+    float zhangFu = newFields[6].replace("%", "").toFloat(&ok);
+    if (ok)
+    {
+        dayLineData.m_zhangFu = zhangFu;
+    }
+
+    float huanShou = newFields[10].replace("%", "").toFloat(&ok);
+    if (ok)
+    {
+        dayLineData.m_huanShou = huanShou;
+    }
+
+    float kaiPan = newFields[2].replace("%", "").toFloat(&ok);
+    if (ok)
+    {
+        dayLineData.m_kaiPan = kaiPan;
+    }
+
+    dayLineDatas.append(dayLineData);
 }
 
 LoadDataController::LoadDataController(QObject *parent)
     : QObject{parent}
 {
-
+    m_dataManager = DataManager::getInstance();
 }
 
 void LoadDataController::run(QString rootDir)
@@ -211,7 +494,7 @@ void LoadDataController::onStockFileScannerFinish()
 
     emit printLog(QString::fromWCharArray(L"找到数据文件%1个").arg(stockFiles.size()));
 
-    DataManager::getInstance()->clearData();
+    m_dataManager->clearData();
 
     // 开启多线程加载数据
     int threadCount = QThread::idealThreadCount();
@@ -265,7 +548,7 @@ void LoadDataController::onStockFileLoaderFinish(StockFileLoader* loader)
 {
     for (int i=0; i<MAX_STOCK_DATA_COUNT; i++)
     {
-        DataManager::getInstance()->m_stockDatas[i].append(loader->m_stockDatas[i]);
+        m_dataManager->m_stockDatas[i].append(loader->m_stockDatas[i]);
     }
 
     for (int i=0; i<m_stockFileLoaders.size(); i++)
@@ -282,8 +565,8 @@ void LoadDataController::onStockFileLoaderFinish(StockFileLoader* loader)
 
     if (m_stockFileLoaders.empty())
     {
-        DataManager::getInstance()->sort();
-        int totalCount = DataManager::getInstance()->totalCount();
+        m_dataManager->sort();
+        int totalCount = m_dataManager->totalCount();
         emit printLog(QString::fromWCharArray(L"加载数据完成，共%1条").arg(totalCount));
         emit runFinish();
     }

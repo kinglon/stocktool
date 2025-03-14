@@ -11,7 +11,8 @@
 #define STOCK_DATA_HOUR_YI      3
 #define STOCK_DATA_HOUR_WU      4
 #define STOCK_DATA_HOUR_WEI     5
-#define MAX_STOCK_DATA_COUNT    6
+#define STOCK_DATA_XIAN         6  // 限数据
+#define MAX_STOCK_DATA_COUNT    7
 
 #define DATA_FIELD_LENGTH   6
 
@@ -90,8 +91,10 @@ public:
     // 农历时间，年和月的数据才有
     QString m_lunarTime;
 
-    // 公历时间的时间戳
+    // 公历时间的开始时间戳
     qint64 m_beginTime = 0;
+
+    // 公历时间的结束时间戳（含）
     qint64 m_endTime = 0;
 
     // 时, 已午未
@@ -121,6 +124,35 @@ public:
             return 100;
         }
     }
+};
+
+// 用来存储日线一条数据
+class DayLineData
+{
+public:
+    // 行业
+    QString m_industryName;
+
+    // 股票名称
+    QString m_stockName;
+
+    // 公历开始时间的时间戳
+    qint64 m_beginTime = 0;
+
+    // 公历结束时间的时间戳（含）
+    qint64 m_endTime = 0;
+
+    // 开盘
+    float m_kaiPan = 0.0f;
+
+    // 涨幅百分比（不含%，10%取10）
+    float m_zhangFu = 0.0f;
+
+    // 换手百分比（不含%，10%取10）
+    float m_huanShou = 0.0f;
+
+    // 总天数
+    int m_totalDay = 1;
 };
 
 class StockDataUtil

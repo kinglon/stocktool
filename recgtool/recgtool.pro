@@ -19,11 +19,13 @@ SOURCES += \
     ../stock/datamanager.cpp \
     ../stock/loaddatacontroller.cpp \
     ../stock/stockdatautil.cpp \
+    filterdatacontroller.cpp \
     main.cpp \
     maincontroller.cpp \
     mainwindow.cpp \
     settingmanager.cpp \
-    stockdatamanager.cpp
+    stockdatamanager.cpp \
+    stockdatawriter.cpp
 
 HEADERS += \
     ../Utility/DumpUtil.h \
@@ -37,10 +39,12 @@ HEADERS += \
     ../stock/datamanager.h \
     ../stock/loaddatacontroller.h \
     ../stock/stockdatautil.h \
+    filterdatacontroller.h \
     maincontroller.h \
     mainwindow.h \
     settingmanager.h \
-    stockdatamanager.h
+    stockdatamanager.h \
+    stockdatawriter.h
 
 FORMS += \
     mainwindow.ui

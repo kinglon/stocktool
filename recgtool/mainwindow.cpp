@@ -7,6 +7,7 @@
 #include <QFileDialog>
 #include <QFile>
 #include "maincontroller.h"
+#include "stockdatawriter.h"
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -126,14 +127,22 @@ void MainWindow::onSaveButtonClicked()
         return;
     }
 
+    QString defaultDir = QDir::homePath();
+    if (!SettingManager::getInstance()->m_savedPath.isEmpty())
+    {
+        defaultDir = SettingManager::getInstance()->m_savedPath;
+    }
     QString saveDir = QFileDialog::getExistingDirectory(this, QString::fromWCharArray(L"选择存储目录"),
-                                                          QDir::homePath());
+                                                          defaultDir);
     if (saveDir.isEmpty())
     {
         return;
     }
 
-    if (!StockDataManager::getInstance()->saveResult(saveDir))
+    SettingManager::getInstance()->m_savedPath = saveDir;
+    SettingManager::getInstance()->save();
+
+    if (!StockDataWriter::saveResult(saveDir))
     {
         UiUtil::showTip(QString::fromWCharArray(L"存储失败"));
         return;
@@ -172,9 +181,6 @@ void MainWindow::onStartButtonClicked()
                 UiUtil::showTip(QString::fromWCharArray(L"请正确填写指数涨跌幅"));
                 return;
             }
-
-            stockSetting->m_zhangDieStart /= 100;
-            stockSetting->m_zhangDieEnd /= 100;
         }
 
         bool ok = false;
@@ -212,10 +218,7 @@ void MainWindow::onStartButtonClicked()
             {
                 UiUtil::showTip(QString::fromWCharArray(L"请正确填写行业涨跌幅"));
                 return;
-            }
-
-            stockSetting->m_zhangDieStart /= 100;
-            stockSetting->m_zhangDieEnd /= 100;
+            }            
         }
 
         bool ok = false;
@@ -254,9 +257,6 @@ void MainWindow::onStartButtonClicked()
                 UiUtil::showTip(QString::fromWCharArray(L"请正确填写概念1涨跌幅"));
                 return;
             }
-
-            stockSetting->m_zhangDieStart /= 100;
-            stockSetting->m_zhangDieEnd /= 100;
         }
 
         bool ok = false;
@@ -295,9 +295,6 @@ void MainWindow::onStartButtonClicked()
                 UiUtil::showTip(QString::fromWCharArray(L"请正确填写概念2涨跌幅"));
                 return;
             }
-
-            stockSetting->m_zhangDieStart /= 100;
-            stockSetting->m_zhangDieEnd /= 100;
         }
 
         bool ok = false;
@@ -336,9 +333,6 @@ void MainWindow::onStartButtonClicked()
                 UiUtil::showTip(QString::fromWCharArray(L"请正确填写个股涨跌幅"));
                 return;
             }
-
-            stockSetting->m_zhangDieStart /= 100;
-            stockSetting->m_zhangDieEnd /= 100;
         }
     }
 
@@ -422,13 +416,15 @@ void MainWindow::onStartButtonClicked()
 
 
 void MainWindow::startSearch()
-{
+{    
     ui->pushButtonStart->setEnabled(false);
+    ui->pushButtonSave->setEnabled(false);
     ui->textEditLog->clear();
 
     MainController* controller = new MainController();
     connect(controller, &MainController::runFinish, [this, controller] () {
         ui->pushButtonStart->setEnabled(true);
+        ui->pushButtonSave->setEnabled(true);
         controller->deleteLater();
     });
     connect(controller, &MainController::printLog, this, &MainWindow::onPrintLog);

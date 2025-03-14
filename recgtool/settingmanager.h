@@ -38,11 +38,11 @@ public:
     // 是否需要根据涨跌幅筛选
     bool m_enableZhangDie = false;
 
-    // 涨跌范围，已经除以100了
+    // 涨跌范围百分比，（不含%，10%取10）
     float m_zhangDieStart = 0.0f;
     float m_zhangDieEnd = 0.0f;
 
-    // 值算法使用，扣减百分比，已经除以100了
+    // 值算法使用，扣减百分比，已经除以100了，10%取0.1
     float m_kuoJianPercent = 0.0f;
 };
 
@@ -54,7 +54,7 @@ protected:
 public:
     static SettingManager* getInstance();
 
-    void save();    
+    void save();
 
 private:
     void load();
@@ -85,4 +85,7 @@ public:
     // 识别内容时间范围, utc时间戳，单位秒
     qint64 m_recgDateStart = 0;
     qint64 m_recgDateEnd = 0;
+
+    // 保存路径
+    QString m_savedPath;
 };

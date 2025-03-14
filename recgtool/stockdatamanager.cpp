@@ -2,7 +2,10 @@
 
 StockDataManager::StockDataManager()
 {
-
+    for (int i=0; i<sizeof(m_dataManagers)/sizeof(m_dataManagers[0]); i++)
+    {
+        m_dataManagers[i] = DataManager::createInstance();
+    }
 }
 
 StockDataManager* StockDataManager::getInstance()
@@ -11,8 +14,11 @@ StockDataManager* StockDataManager::getInstance()
     return instance;
 }
 
-bool StockDataManager::saveResult(const QString& savePath)
+void StockDataManager::clear()
 {
-    // todo by yejinlong
-    return true;
+    m_result = "";
+    for (int i=0; i<sizeof(m_dataManagers)/sizeof(m_dataManagers[0]); i++)
+    {
+        m_dataManagers[i]->clearData();
+    }
 }

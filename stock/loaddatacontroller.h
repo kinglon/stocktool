@@ -48,12 +48,23 @@ private:
 
     void processOneLine(const QString& industryName, const QString& stockName, int dataType, const QString& line);
 
+    void loadDayLineData(const QString& industryName, const QString& dayLineFilePath);
+
+    void processOneLineOfDayLine(const QString& industryName, const QString& stockName,
+                                 const QString& line, QVector<DayLineData>& dayLineDatas);
+
+    void calculateDayLineYear(const QVector<DayLineData>& dayLineDatas);
+
+    void calculateDayLineMonth(const QVector<DayLineData>& dayLineDatas);
+
 public:
     QVector<QString> m_stockFiles;
 
     QVector<QString> m_industryNames;
 
     QVector<StockData> m_stockDatas[MAX_STOCK_DATA_COUNT];
+
+    QVector<DayLineData> m_dayLineDatas[MAX_STOCK_DATA_COUNT];
 
     int m_count = 0;
 };
@@ -65,6 +76,8 @@ public:
     explicit LoadDataController(QObject *parent = nullptr);
 
 public:
+    void setDataManager(DataManager* dataManager) { m_dataManager = dataManager; }
+
     void run(QString rootDir);
 
 signals:
@@ -80,6 +93,8 @@ private slots:
     void onStockFileLoaderFinish(StockFileLoader* loader);
 
 private:
+    DataManager* m_dataManager = nullptr;
+
     StockFileScanner* m_stockFileScanner = nullptr;
 
     QThread* m_stockFileScanThread = nullptr;

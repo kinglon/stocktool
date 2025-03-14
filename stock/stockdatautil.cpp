@@ -467,7 +467,7 @@ bool StockDataUtil::parseOneLine(const QString& industryName, const QString& sto
 
     stockData.m_industryName = industryName;
     stockData.m_stockName = stockName;
-    if (dataType == STOCK_DATA_YEAR || dataType == STOCK_DATA_MONTH)
+    if (dataType == STOCK_DATA_YEAR || dataType == STOCK_DATA_MONTH || dataType == STOCK_DATA_XIAN)
     {
         if (newFields.length() != 9)
         {
@@ -476,19 +476,38 @@ bool StockDataUtil::parseOneLine(const QString& industryName, const QString& sto
 
         stockData.m_lunarTime = newFields[0];
 
-        QDateTime beginTime = QDateTime::fromString(newFields[1], "yyyy-M-d");
-        if (!beginTime.isValid())
+        if (dataType == STOCK_DATA_XIAN)
         {
-            return false;
-        }
-        stockData.m_beginTime = beginTime.toSecsSinceEpoch();
+            QDateTime beginTime = QDateTime::fromString(newFields[1], "yyyy");
+            if (!beginTime.isValid())
+            {
+                return false;
+            }
+            stockData.m_beginTime = beginTime.toSecsSinceEpoch();
 
-        QDateTime endTime = QDateTime::fromString(newFields[2], "yyyy-M-d");
-        if (!endTime.isValid())
-        {
-            return false;
+            QDateTime endTime = QDateTime::fromString(newFields[2], "yyyy");
+            if (!endTime.isValid())
+            {
+                return false;
+            }
+            stockData.m_endTime = endTime.addYears(1).toSecsSinceEpoch()-1;
         }
-        stockData.m_endTime = endTime.toSecsSinceEpoch();
+        else
+        {
+            QDateTime beginTime = QDateTime::fromString(newFields[1], "yyyy-M-d");
+            if (!beginTime.isValid())
+            {
+                return false;
+            }
+            stockData.m_beginTime = beginTime.toSecsSinceEpoch();
+
+            QDateTime endTime = QDateTime::fromString(newFields[2], "yyyy-M-d");
+            if (!endTime.isValid())
+            {
+                return false;
+            }
+            stockData.m_endTime = endTime.addDays(1).toSecsSinceEpoch()-1;
+        }
 
         for (int i=0; i<DATA_FIELD_LENGTH; i++)
         {

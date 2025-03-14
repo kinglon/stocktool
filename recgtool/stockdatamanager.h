@@ -2,6 +2,9 @@
 #define STOCKDATAMANAGER_H
 
 #include <QString>
+#include <QVector>
+#include "../stock/datamanager.h"
+#include "settingmanager.h"
 
 class StockDataManager
 {
@@ -14,10 +17,12 @@ public:
     // 判断有没结果数据
     bool hasResultData() { return !m_result.isEmpty(); }
 
-    bool saveResult(const QString& savePath);
+    void clear();
 
-private:
+public:
     QString m_result;
+
+    DataManager* m_dataManagers[STOCK_TYPE_MAX];
 };
 
 #endif // STOCKDATAMANAGER_H
