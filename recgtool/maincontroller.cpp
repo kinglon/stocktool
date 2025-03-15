@@ -59,6 +59,13 @@ void MainController::doFilterData()
     connect(controller, &FilterDataController::printLog, this, &MainController::printLog);
     connect(controller, &FilterDataController::runFinish, [this, controller]() {
         emit printLog(QString::fromWCharArray(L"识别数据完成"));
+        if (controller->m_stockDatas.empty())
+        {
+            emit printLog(QString::fromWCharArray(L"没有识别到数据"));
+            emit runFinish();
+            return;
+        }
+
         doWriteData(controller->m_stockDatas);
         controller->deleteLater();
     });

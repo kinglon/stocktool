@@ -2,6 +2,7 @@
 #define STOCKDATAUTIL_H
 
 #include <QString>
+#include <QVector>
 
 // 股票数据索引
 #define STOCK_DATA_YEAR         0
@@ -16,7 +17,7 @@
 
 #define DATA_FIELD_LENGTH   6
 
-// 筛选条件
+// 筛选条件，支持：禄 权  科  忌 羊 激发字的筛选
 class FilterCondition
 {
 public:
@@ -75,6 +76,37 @@ public:
         }
 
         return false;
+    }
+};
+
+// 支持18个字及其对应状态的筛选
+class FilterConditionV3
+{
+public:
+    // 一宫含的状态
+    QVector<QString> m_oneIncludes;
+
+    // 一宫不含的状态
+    QVector<QString> m_oneExcludes;
+
+    // 二宫含的状态
+    QVector<QString> m_twoIncludes;
+
+    // 二宫不含的状态
+    QVector<QString> m_twoExcludes;
+
+public:
+    bool isEnable() const
+    {
+        if (m_oneIncludes.isEmpty() && m_oneExcludes.isEmpty()
+                && m_twoIncludes.isEmpty() && m_twoExcludes.isEmpty())
+        {
+            return false;
+        }
+        else
+        {
+            return true;
+        }
     }
 };
 
@@ -192,6 +224,39 @@ public:
     // 解析股票一行数据
     // dataType STOCK_DATA_*
     static bool parseOneLine(const QString& industryName, const QString& stockName, int dataType, const QString& line, StockData& stockData);
+};
+
+// 筛选算法：支持18个字及状态的筛选
+class StockDataUtilV2
+{
+public:
+    StockDataUtilV2();
+
+public:
+    // 检查是否满足条件
+    // matchAll True 全宫相关，一宫受四六宫激发，二宫受三五宫激发，False 一宫二宫不受三四五六宫激发
+    bool checkIfStockDataOk(StockData stockData, const FilterConditionV3& filterCondition, bool matchAll);
+
+    // 按照算法，对股票数据的一二宫内容进行变换处理
+    void transformStockData(const StockData& stockData, QString& oneGong, QString& twoGong, bool matchAll);
+
+    void enableDebugLog() { m_enableDebugLog = true; }
+
+private:
+    // 激活有括号的激活字
+    void activate(QString gongData[DATA_FIELD_LENGTH], bool matchAll);
+
+    // 待激活字后面是激活值去除
+    void removeActivateWordWithKuoHao(QString gongData[DATA_FIELD_LENGTH]);
+
+private:
+    // 有效字符
+    QString m_validChars;
+
+    // 可激活的字
+    QString m_activateChars;
+
+    bool m_enableDebugLog = false;
 };
 
 #endif // STOCKDATAUTIL_H

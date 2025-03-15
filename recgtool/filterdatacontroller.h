@@ -23,6 +23,9 @@ public:
 protected:
     virtual bool canMatch(const StockData& stockData) = 0;
 
+    // 根据设置的指定日期，获取该日期的股票内容
+    QVector<StockData> getStockDataBySpecificDate();
+
 private:
     bool isZhangFuOk(const StockData& stockData, int stockType);
 
@@ -40,19 +43,7 @@ public:
     QVector<StockData> m_stockDatas;
 };
 
-// 精确查找
-class DataFilterJingQue : public DataFilterBase
-{
-    Q_OBJECT
-
-public:
-    explicit DataFilterJingQue(QObject *parent = nullptr);
-
-protected:
-    virtual bool canMatch(const StockData& stockData) override;
-};
-
-// 含关键字查找
+// 关键字查找
 class DataFilterKeyWord : public DataFilterBase
 {
     Q_OBJECT
@@ -62,6 +53,14 @@ public:
 
 protected:
     virtual bool canMatch(const StockData& stockData) override;
+
+public:
+    // 标志是精确查找还是模糊查找
+    bool m_equalFind = true;
+
+private:
+    // 指定日期对比的股票内容
+    QVector<StockData> m_compareStockDatas;
 };
 
 // 算法查找
@@ -74,6 +73,18 @@ public:
 
 protected:
     virtual bool canMatch(const StockData& stockData) override;
+
+private:
+    // 从一段文本中提取算法提到的状态
+    QVector<QString> extractStatus(const QString& content);
+
+private:
+    // 指定日期对比的股票内容
+    QVector<StockData> m_compareStockDatas;
+
+    QVector<QString> m_allStatus;
+
+    StockDataUtilV2 m_stockDataUtil;
 };
 
 class FilterDataController : public QObject

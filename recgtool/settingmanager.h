@@ -56,6 +56,9 @@ public:
 
     void save();
 
+    // 开启debug级别日志
+    bool enableDebugLog() { return m_nLogLevel==1; }
+
 private:
     void load();
 
@@ -75,6 +78,9 @@ public:
 
     // 比对内容来源
     int m_compareContentFrom = COMPARE_CONTENT_ZHIDING_DAY;
+
+    // 比对指定日期
+    qint64 m_compareDate = 0;
 
     // 指定字的筛选条件
     FilterCondition m_zhiDingWordFilterCondition;

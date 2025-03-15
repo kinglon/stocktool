@@ -2,6 +2,7 @@
 #include <QStringList>
 #include <QDateTime>
 #include <QMap>
+#include <QRegularExpression>
 
 static QString YiWord = QString::fromWCharArray(L"巳");
 static QString WuWord = QString::fromWCharArray(L"午");
@@ -539,7 +540,7 @@ bool StockDataUtil::parseOneLine(const QString& industryName, const QString& sto
 
         QDateTime dateTime = QDateTime::fromString(dateString, QString::fromWCharArray(L"yyyy年 M月 d日"));
         stockData.m_beginTime = dateTime.toSecsSinceEpoch();
-        stockData.m_endTime = stockData.m_beginTime;
+        stockData.m_endTime = stockData.m_beginTime + 24*3600 -1;
 
         for (int i=0; i<DATA_FIELD_LENGTH; i++)
         {
@@ -548,4 +549,197 @@ bool StockDataUtil::parseOneLine(const QString& industryName, const QString& sto
     }
 
     return true;
+}
+
+StockDataUtilV2::StockDataUtilV2()
+{
+    m_validChars = QString::fromWCharArray(L"()阴阳武破机紫府狼巨廉相梁杀同羊存昌曲");
+    m_activateChars = QString::fromWCharArray(L"禄权科忌羊");
+}
+
+bool StockDataUtilV2::checkIfStockDataOk(StockData stockData, const FilterConditionV3& filterCondition, bool matchAll)
+{
+    if (!filterCondition.isEnable())
+    {
+        return false;
+    }
+
+    // 根据算法重新调整一二宫的内容
+    QString oneGong;
+    QString twoGong;
+    transformStockData(stockData, oneGong, twoGong, matchAll);
+
+    // 一宫不含，都要满足
+    for (const auto& status : filterCondition.m_oneExcludes)
+    {
+        if (oneGong.indexOf(status) >= 0)
+        {
+            return false;
+        }
+    }
+
+    // 二宫不含，都要满足
+    for (const auto& status : filterCondition.m_twoExcludes)
+    {
+        if (twoGong.indexOf(status) >= 0)
+        {
+            return false;
+        }
+    }
+
+    // 一宫含，只要含一个就满足
+    bool ok = false;
+    for (const auto& status : filterCondition.m_oneIncludes)
+    {
+        if (oneGong.indexOf(status) >= 0)
+        {
+            ok = true;
+            break;
+        }
+    }
+
+    if (!ok)
+    {
+        return false;
+    }
+
+    // 二宫含，只要含一个就满足
+    ok = false;
+    for (const auto& status : filterCondition.m_twoIncludes)
+    {
+        if (twoGong.indexOf(status) >= 0)
+        {
+            ok = true;
+            break;
+        }
+    }
+
+    if (!ok)
+    {
+        return false;
+    }
+
+    return true;
+}
+
+void StockDataUtilV2::transformStockData(const StockData& stockData, QString& oneGong, QString& twoGong, bool matchAll)
+{
+    QString gongData[DATA_FIELD_LENGTH];
+    for (int i=0; i<DATA_FIELD_LENGTH; i++)
+    {
+        gongData[i] = stockData.m_data[i];
+    }
+
+    // 一二宫有空互相借位，五六宫有空互相借位
+    if (gongData[0].indexOf(QString::fromWCharArray(L"空")) >= 0)
+    {
+        gongData[0].replace(QString::fromWCharArray(L"空"), stockData.m_data[1]);
+    }
+
+    if (gongData[1].indexOf(QString::fromWCharArray(L"空")) >= 0)
+    {
+        gongData[1].replace(QString::fromWCharArray(L"空"), stockData.m_data[0]);
+    }
+
+    if (gongData[4].indexOf(QString::fromWCharArray(L"空")) >= 0)
+    {
+        gongData[4].replace(QString::fromWCharArray(L"空"), stockData.m_data[5]);
+    }
+
+    if (gongData[5].indexOf(QString::fromWCharArray(L"空")) >= 0)
+    {
+        gongData[5].replace(QString::fromWCharArray(L"空"), stockData.m_data[4]);
+    }
+
+    // 去除无效的字符
+    for (int i=0; i<=1; i++)
+    {
+        QString validChars;
+        for (int j=0; j<gongData[i].length(); j++)
+        {
+            if (m_validChars.indexOf(gongData[i][j]) >= 0)
+            {
+                validChars.append(gongData[i][j]);
+            }
+        }
+        gongData[i] = validChars;
+    }
+
+    // 待激活字后面是激活值字时去除，比如：(权)科 => 科，即使后面有权激活
+    for (int i=0; i<=1; i++)
+    {
+        QRegularExpression regex(QString::fromWCharArray(L"\\((禄|权|科|忌)\\)(禄|权|科|忌)"));
+        gongData[i].replace(regex, "\\2");
+    }
+
+    // 有括号被无括号的激活字激活
+    activate(gongData, matchAll);
+
+    // 一些特殊字的替换
+    for (int i=0; i<=1; i++)
+    {
+        gongData[i].replace(QString::fromWCharArray(L"(昌)科"), QString::fromWCharArray(L"昌科"));
+        gongData[i].replace(QString::fromWCharArray(L"(昌)忌"), QString::fromWCharArray(L"昌忌"));
+        gongData[i].replace(QString::fromWCharArray(L"(曲)科"), QString::fromWCharArray(L"曲科"));
+        gongData[i].replace(QString::fromWCharArray(L"(曲)忌"), QString::fromWCharArray(L"曲忌"));
+    }
+
+    // 去除所有括号及括号的内容
+    for (int i=0; i<=1; i++)
+    {
+        QRegularExpression regex("\\([^()]*\\)");
+        gongData[i].replace(regex, "");
+    }
+
+    if (m_enableDebugLog)
+    {
+        QString allData;
+        for (int i=0; i<DATA_FIELD_LENGTH; i++)
+        {
+            allData += stockData.m_data[i] + ", ";
+        }
+        qDebug("old data: %s", allData.toStdString().c_str());
+
+        QString newData = gongData[0] + ", " + gongData[1];
+        qDebug("new data: %s", newData.toStdString().c_str());
+    }
+
+    oneGong = gongData[0];
+    twoGong = gongData[1];
+}
+
+void StockDataUtilV2::activate(QString gongData[DATA_FIELD_LENGTH], bool matchAll)
+{
+    for (int i=0; i<=1; i++)
+    {
+        for (const auto& activateChar : m_activateChars)
+        {
+            if (gongData[i].indexOf(QString("(")+activateChar+")") < 0)
+            {
+                continue;
+            }
+
+            // 查找目标字符，且后面不是 ) 符号
+            QRegularExpression regex(QString("%1(?!\\))").arg(activateChar));
+            bool match = regex.match(gongData[0]).hasMatch() || regex.match(gongData[1]).hasMatch();
+            if (!match)
+            {
+                if (matchAll && i==0)
+                {
+                    // 一宫受四六宫激发
+                    match = regex.match(gongData[3]).hasMatch() || regex.match(gongData[5]).hasMatch();
+                }
+                else if (matchAll && i==1)
+                {
+                    // 二宫受三五宫激发
+                    match = regex.match(gongData[2]).hasMatch() || regex.match(gongData[4]).hasMatch();
+                }
+            }
+
+            if (match)
+            {
+                gongData[i].replace(QString("(")+activateChar+")", activateChar);
+            }
+        }
+    }
 }

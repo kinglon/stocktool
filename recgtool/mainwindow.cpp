@@ -377,6 +377,7 @@ void MainWindow::onStartButtonClicked()
     }
     else if (ui->radioButtonZhidingDate->isChecked())
     {
+        setting->m_compareDate = ui->dateEditZhiding->dateTime().toSecsSinceEpoch();
         if (ui->radioButtonDay->isChecked())
         {
             setting->m_compareContentFrom = COMPARE_CONTENT_ZHIDING_DAY;
