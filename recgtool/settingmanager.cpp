@@ -48,6 +48,7 @@ void SettingManager::load()
     }
 
     m_savedPath = root["savedPath"].toString();
+    m_cacheData = root["cacheData"].toBool();
 }
 
 void SettingManager::save()
@@ -64,6 +65,7 @@ void SettingManager::save()
     }
     root["stockSetting"] = stockSettingJsonArray;
     root["savedPath"] = m_savedPath;
+    root["cacheData"] = m_cacheData;
 
     QJsonDocument jsonDocument(root);
     QByteArray jsonData = jsonDocument.toJson(QJsonDocument::Indented);

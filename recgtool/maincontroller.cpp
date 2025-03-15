@@ -8,6 +8,7 @@ void WriteDataThread::run()
 {
     StockDataWriter writer;
     StockDataManager::getInstance()->m_result = writer.getResult(m_stockDatas);
+    emit runFinish();
 }
 
 MainController::MainController(QObject *parent)
@@ -18,18 +19,31 @@ MainController::MainController(QObject *parent)
 
 void MainController::run()
 {
-    StockDataManager::getInstance()->clear();
+    bool needLoadData = true;
+    if (SettingManager::getInstance()->m_cacheData && StockDataManager::getInstance()->hasData())
+    {
+        needLoadData = false;
+    }
 
-    // 加载数据
-    emit printLog(QString::fromWCharArray(L"开始加载数据"));
-    doLoadData();
+    if (needLoadData)
+    {
+        StockDataManager::getInstance()->clear();
+
+        // 加载数据
+        emit printLog(QString::fromWCharArray(L"开始加载各目录的数据"));
+        doLoadData();
+    }
+    else
+    {
+        doFilterData();
+    }
 }
 
 void MainController::doLoadData()
 {
     if (m_loadDataNextIndex > STOCK_TYPE_ZHISHU)
     {
-        emit printLog(QString::fromWCharArray(L"加载数据完成"));
+        emit printLog(QString::fromWCharArray(L"加载各目录的数据完成"));
         doFilterData();
         return;
     }
@@ -92,4 +106,6 @@ void MainController::onWriteDataFinish()
     {
         emit printResult(StockDataManager::getInstance()->m_result);
     }
+
+    emit runFinish();
 }

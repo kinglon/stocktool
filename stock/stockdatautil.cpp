@@ -553,7 +553,7 @@ bool StockDataUtil::parseOneLine(const QString& industryName, const QString& sto
 
 StockDataUtilV2::StockDataUtilV2()
 {
-    m_validChars = QString::fromWCharArray(L"()阴阳武破机紫府狼巨廉相梁杀同羊存昌曲");
+    m_validChars = QString::fromWCharArray(L"()阴阳武破机紫府狼巨廉相梁杀同羊存昌曲禄权科忌");
     m_activateChars = QString::fromWCharArray(L"禄权科忌羊");
 }
 
@@ -698,10 +698,10 @@ void StockDataUtilV2::transformStockData(const StockData& stockData, QString& on
         {
             allData += stockData.m_data[i] + ", ";
         }
-        qDebug("old data: %s", allData.toStdString().c_str());
 
         QString newData = gongData[0] + ", " + gongData[1];
-        qDebug("new data: %s", newData.toStdString().c_str());
+
+        qDebug("old data: %s   new data: %s", allData.toStdString().c_str(), newData.toStdString().c_str());
     }
 
     oneGong = gongData[0];

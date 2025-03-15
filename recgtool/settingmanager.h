@@ -94,4 +94,7 @@ public:
 
     // 保存路径
     QString m_savedPath;
+
+    // 缓存加载的数据
+    bool m_cacheData = false;
 };

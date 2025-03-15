@@ -29,6 +29,9 @@ protected:
 private:
     bool isZhangFuOk(const StockData& stockData, int stockType);
 
+    // 检测该股票的日期是否有日线数据
+    bool hasDayLineData(const StockData& stockData, int stockType);
+
 signals:
     void oneDayFinish();
 
@@ -40,6 +43,7 @@ public:
     // 不含这天
     QDate m_endDate;
 
+    // 匹配成功的数据
     QVector<StockData> m_stockDatas;
 };
 

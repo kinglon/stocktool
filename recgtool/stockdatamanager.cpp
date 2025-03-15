@@ -14,6 +14,19 @@ StockDataManager* StockDataManager::getInstance()
     return instance;
 }
 
+bool StockDataManager::hasData()
+{
+    for (int i=0; i<sizeof(m_dataManagers)/sizeof(m_dataManagers[0]); i++)
+    {
+        if (m_dataManagers[i]->hasData())
+        {
+            return true;
+        }
+    }
+
+    return false;
+}
+
 void StockDataManager::clear()
 {
     m_result = "";

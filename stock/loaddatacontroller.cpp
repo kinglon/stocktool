@@ -131,11 +131,7 @@ void StockFileLoader::run()
         }
 
         m_count++;
-        if (m_count % 1000 == 0)
-        {
-            emit reportProgress(m_count);
-            m_count = 0;
-        }
+        emit reportProgress(m_count);
     }
     emit runFinish(this);
 }
@@ -217,8 +213,8 @@ void StockFileLoader::processOneLine(const QString& industryName, const QString&
 void StockFileLoader::loadDayLineData(const QString& industryName, const QString& dayLineFilePath)
 {
     // 获取股票名字
-    QFile file(dayLineFilePath);
-    QStringList parts = file.fileName().split("_");
+    QFileInfo fileInfo(dayLineFilePath);
+    QStringList parts = fileInfo.fileName().split("_");
     if (parts.empty())
     {
         return;
@@ -227,6 +223,7 @@ void StockFileLoader::loadDayLineData(const QString& industryName, const QString
 
     // 读取文件内容，解析数据
     QVector<DayLineData> dayLineDatas;
+    QFile file(dayLineFilePath);
     if (!file.open(QIODevice::ReadOnly | QIODevice::Text))
     {
         qCritical("failed to open file: %s", dayLineFilePath.toStdString().c_str());
@@ -245,7 +242,7 @@ void StockFileLoader::loadDayLineData(const QString& industryName, const QString
         return;
     }
 
-    m_dayLineDatas->append(dayLineDatas);
+    m_dayLineDatas[STOCK_DATA_DAY].append(dayLineDatas);
 
     // 统计年的数据
     calculateDayLineYear(dayLineDatas);
@@ -396,22 +393,10 @@ void StockFileLoader::processOneLineOfDayLine(const QString& industryName, const
         return;
     }
 
-    QStringList fields = line.split(',');
-    if (fields.length() < 11) // 至少要有11个字段
+    QStringList newFields = line.split(',');
+    if (newFields.length() < 11) // 至少要有11个字段
     {
         return;
-    }
-
-    QStringList newFields;
-    for (auto& field : fields)
-    {
-        // 去除前后双引号
-        QString subString = field.mid(1, field.length()-2);
-        if (subString.isEmpty())
-        {
-            return;
-        }
-        newFields.append(subString);
     }
 
     if (newFields[0] == QString::fromWCharArray(L"时间"))
@@ -533,8 +518,10 @@ void LoadDataController::onStockFileScannerFinish()
     }
 
     QTimer* timer = new QTimer(this);
-    connect(timer, &QTimer::timeout, [this]() {
-        emit printLog(QString::fromWCharArray(L"已加载数据%1条").arg(m_totalCount));
+    int totalFileCount = stockFiles.size();
+    connect(timer, &QTimer::timeout, [this, totalFileCount]() {
+        emit printLog(QString::fromWCharArray(L"已加载文件%1/%2").arg(
+                          QString::number(m_totalCount), QString::number(totalFileCount)));
     });
     timer->start(5000);
 }
@@ -549,6 +536,7 @@ void LoadDataController::onStockFileLoaderFinish(StockFileLoader* loader)
     for (int i=0; i<MAX_STOCK_DATA_COUNT; i++)
     {
         m_dataManager->m_stockDatas[i].append(loader->m_stockDatas[i]);
+        m_dataManager->m_dayLineDatas[i].append(loader->m_dayLineDatas[i]);
     }
 
     for (int i=0; i<m_stockFileLoaders.size(); i++)

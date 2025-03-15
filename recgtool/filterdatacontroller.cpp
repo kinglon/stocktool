@@ -40,6 +40,7 @@ void DataFilterBase::run()
             const StockData& currentStockData = (*stockDatas)[left];
             if (currentStockData.m_beginTime == searchTime
                     && canMatch(currentStockData)
+                    && hasDayLineData(currentStockData, stockType)
                     && isZhangFuOk(currentStockData, stockType))
             {
                 m_stockDatas.append(currentStockData);
@@ -134,6 +135,8 @@ QVector<StockData> DataFilterBase::getStockDataBySpecificDate()
         {
             stockDatas = &StockDataManager::getInstance()->m_dataManagers[i]->m_stockDatas[STOCK_DATA_DAY];
         }
+
+        break;
     }
 
     if (stockDatas == nullptr)
@@ -235,6 +238,32 @@ bool DataFilterBase::isZhangFuOk(const StockData& stockData, int stockType)
     return true;
 }
 
+bool DataFilterBase::hasDayLineData(const StockData& stockData, int stockType)
+{
+    const QVector<DayLineData>& stockDayLineData = StockDataManager::getInstance()->m_dataManagers[stockType]->m_dayLineDatas[STOCK_DATA_DAY];
+    qint64 searchTime = stockData.m_beginTime;
+    int left = findIndex(stockDayLineData, searchTime);
+    while (left < stockDayLineData.length())
+    {
+        const DayLineData& currentDayLineData = stockDayLineData[left];
+        if (currentDayLineData.m_beginTime == searchTime
+                && currentDayLineData.m_industryName == stockData.m_industryName
+                && currentDayLineData.m_stockName == stockData.m_stockName)
+        {
+            return true;
+        }
+
+        if (currentDayLineData.m_beginTime > searchTime)
+        {
+            break;
+        }
+
+        left++;
+    }
+
+    return false;
+}
+
 DataFilterKeyWord::DataFilterKeyWord(QObject *parent)
     : DataFilterBase{parent}
 {
@@ -261,7 +290,7 @@ bool DataFilterKeyWord::canMatch(const StockData& stockData)
              || compareDataFrom == COMPARE_CONTENT_ZHIDING_MONTH
              || compareDataFrom == COMPARE_CONTENT_ZHIDING_DAY)
     {
-        for (const StockData& item : m_stockDatas)
+        for (const StockData& item : m_compareStockDatas)
         {
             if (item.m_industryName == stockData.m_industryName
                     && item.m_stockName == stockData.m_stockName)
@@ -273,7 +302,7 @@ bool DataFilterKeyWord::canMatch(const StockData& stockData)
         }
     }
 
-    if (oneGongCompareContent.isEmpty() && oneGongCompareContent.isEmpty())
+    if (oneGongCompareContent.isEmpty() && twoGongCompareContent.isEmpty())
     {
         return false;
     }
@@ -281,7 +310,7 @@ bool DataFilterKeyWord::canMatch(const StockData& stockData)
     if (m_equalFind)
     {
         if (stockData.m_data[0] == oneGongCompareContent
-            && stockData.m_data[1] == oneGongCompareContent)
+            && stockData.m_data[1] == twoGongCompareContent)
         {
             return true;
         }
@@ -289,7 +318,7 @@ bool DataFilterKeyWord::canMatch(const StockData& stockData)
     else
     {
         if (stockData.m_data[0].indexOf(oneGongCompareContent) >= 0
-            && stockData.m_data[1].indexOf(oneGongCompareContent) >= 0)
+            && stockData.m_data[1].indexOf(twoGongCompareContent) >= 0)
         {
             return true;
         }
@@ -301,6 +330,11 @@ bool DataFilterKeyWord::canMatch(const StockData& stockData)
 DataFilterAlgorithm::DataFilterAlgorithm(QObject *parent)
     : DataFilterBase{parent}
 {
+    if (SettingManager::getInstance()->enableDebugLog())
+    {
+        m_stockDataUtil.enableDebugLog();
+    }
+
     int compareDataFrom = SettingManager::getInstance()->m_compareContentFrom;
     if (compareDataFrom == COMPARE_CONTENT_ZHIDING_YEAR
                  || compareDataFrom == COMPARE_CONTENT_ZHIDING_MONTH
@@ -404,7 +438,7 @@ bool DataFilterAlgorithm::canMatch(const StockData& stockData)
              || compareDataFrom == COMPARE_CONTENT_ZHIDING_MONTH
              || compareDataFrom == COMPARE_CONTENT_ZHIDING_DAY)
     {
-        for (const StockData& item : m_stockDatas)
+        for (const StockData& item : m_compareStockDatas)
         {
             if (item.m_industryName == stockData.m_industryName
                     && item.m_stockName == stockData.m_stockName)

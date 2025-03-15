@@ -14,6 +14,9 @@ protected:
 public:
     static StockDataManager* getInstance();
 
+    // 判断有没加载数据
+    bool hasData();
+
     // 判断有没结果数据
     bool hasResultData() { return !m_result.isEmpty(); }
 

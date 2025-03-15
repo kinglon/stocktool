@@ -31,10 +31,16 @@ QString StockDataWriter::getResult(QVector<StockData>& stockDatas)
             if (stockScore.m_industry == a.m_industryName && stockScore.m_stockName == a.m_stockName)
             {
                 aScore = stockScore.getAvarageScore();
+                break;
             }
-            else if (stockScore.m_industry == b.m_industryName && stockScore.m_stockName == b.m_stockName)
+        }
+
+        for (const auto& stockScore : stockScores)
+        {
+            if (stockScore.m_industry == b.m_industryName && stockScore.m_stockName == b.m_stockName)
             {
                 bScore = stockScore.getAvarageScore();
+                break;
             }
         }
 
@@ -356,6 +362,11 @@ void StockDataWriter::writeStockYearContent(const StockData& stockData, QString&
     QVector<DayLineData> dayLineDatas;
     for (int i=STOCK_TYPE_ZHISHU; i>=STOCK_TYPE_GEGU; i--)
     {
+        if (!SettingManager::getInstance()->m_stockSetting[i].m_enable)
+        {
+            continue;
+        }
+
         QVector<DayLineData>& allYearDatas = StockDataManager::getInstance()->m_dataManagers[i]->m_dayLineDatas[STOCK_DATA_YEAR];
         QVector<DayLineData> datas;
         for (const auto& yearData : allYearDatas)
@@ -387,25 +398,8 @@ void StockDataWriter::writeStockYearContent(const StockData& stockData, QString&
         }
     }
 
-    QString thisYear = QDateTime::fromSecsSinceEpoch(stockData.m_beginTime).toString(QString::fromWCharArray(L"yyyy年"));
-
-    // 输出日线数据
-    for (int i=0; i<dayLineDatas.size(); i++)
-    {
-        if (i == dayLineDatas.size() - 1)
-        {
-            // 最后一个要换行
-            result += NEW_LINE;
-        }
-        result += dayLineDatas[i].m_stockName + SPLIT_SPACE;
-        result += thisYear + SPLIT_SPACE;
-        result += QString::number(dayLineDatas[i].m_zhangFu, 'f', 2) + "%" + SPLIT_SPACE;
-        result += QString::fromWCharArray(L"共%1天").arg(dayLineDatas[i].m_totalDay) + SPLIT_SPACE;
-        QString huanShou = QString::number(dayLineDatas[i].m_huanShou, 'f', 2);
-        result += QString::fromWCharArray(L"换手%1").arg(huanShou) + "%" + SPLIT_SPACE;
-    }
-
-    // 获取股票的年的数据，并输出6宫内容
+    // 获取股票的年的数据
+    StockData currentYearStockData;
     for (int i=STOCK_TYPE_GEGU; i<=STOCK_TYPE_ZHISHU; i++)
     {
         if (!SettingManager::getInstance()->m_stockSetting[i].m_enable)
@@ -421,10 +415,7 @@ void StockDataWriter::writeStockYearContent(const StockData& stockData, QString&
                     && stockData.m_beginTime >= yearStockData.m_beginTime
                     && stockData.m_endTime <= yearStockData.m_endTime)
             {
-                for (int j=0; j<ARRAY_SIZE(yearStockData.m_data); j++)
-                {
-                    result += yearStockData.m_data[j] + SPLIT_SPACE;
-                }
+                currentYearStockData = yearStockData;
                 break;
             }
         }
@@ -432,6 +423,29 @@ void StockDataWriter::writeStockYearContent(const StockData& stockData, QString&
         break;
     }
 
+    // 输出日线数据
+    for (int i=0; i<dayLineDatas.size(); i++)
+    {
+        if (i!= 0 && i == dayLineDatas.size() - 1)
+        {
+            // 最后一个要换行
+            result += NEW_LINE;
+        }
+        result += dayLineDatas[i].m_stockName + SPLIT_SPACE;
+        result += currentYearStockData.m_lunarTime + SPLIT_SPACE;
+        result += QString::number(dayLineDatas[i].m_zhangFu, 'f', 2) + "%" + SPLIT_SPACE;
+        result += QString::fromWCharArray(L"共%1天").arg(dayLineDatas[i].m_totalDay) + SPLIT_SPACE;
+        QString huanShou = QString::number(dayLineDatas[i].m_huanShou, 'f', 2);
+        result += QString::fromWCharArray(L"换手%1").arg(huanShou) + "%" + SPLIT_SPACE;
+    }    
+
+    // 输出年6宫内容
+    for (int j=0; j<ARRAY_SIZE(currentYearStockData.m_data); j++)
+    {
+        result += currentYearStockData.m_data[j] + SPLIT_SPACE;
+    }
+
+    result += NEW_LINE;
     result += NEW_LINE;
 }
 
@@ -441,6 +455,11 @@ void StockDataWriter::writeStockMonthContent(const StockData& stockData, QString
     QVector<DayLineData> dayLineDatas;
     for (int i=STOCK_TYPE_ZHISHU; i>=STOCK_TYPE_GEGU; i--)
     {
+        if (!SettingManager::getInstance()->m_stockSetting[i].m_enable)
+        {
+            continue;
+        }
+
         QVector<DayLineData>& allMonthDatas = StockDataManager::getInstance()->m_dataManagers[i]->m_dayLineDatas[STOCK_DATA_MONTH];
         QVector<DayLineData> datas;
         for (const auto& monthData : allMonthDatas)
@@ -472,25 +491,8 @@ void StockDataWriter::writeStockMonthContent(const StockData& stockData, QString
         }
     }
 
-    QString thisMonth = QDateTime::fromSecsSinceEpoch(stockData.m_beginTime).toString(QString::fromWCharArray(L"yyyy年MM月"));
-
-    // 输出日线数据
-    for (int i=0; i<dayLineDatas.size(); i++)
-    {
-        if (i == dayLineDatas.size() - 1)
-        {
-            // 最后一个要换行
-            result += NEW_LINE;
-        }
-        result += dayLineDatas[i].m_stockName + SPLIT_SPACE;
-        result += thisMonth + SPLIT_SPACE;
-        result += QString::number(dayLineDatas[i].m_zhangFu, 'f', 2) + "%" + SPLIT_SPACE;
-        result += QString::fromWCharArray(L"共%1天").arg(dayLineDatas[i].m_totalDay) + SPLIT_SPACE;
-        QString huanShou = QString::number(dayLineDatas[i].m_huanShou, 'f', 2);
-        result += QString::fromWCharArray(L"换手%1").arg(huanShou) + "%" + SPLIT_SPACE;
-    }
-
-    // 获取股票的月的数据，并输出6宫内容
+    // 获取股票的月的数据
+    StockData currentMonthStockData;
     for (int i=STOCK_TYPE_GEGU; i<=STOCK_TYPE_ZHISHU; i++)
     {
         if (!SettingManager::getInstance()->m_stockSetting[i].m_enable)
@@ -506,10 +508,7 @@ void StockDataWriter::writeStockMonthContent(const StockData& stockData, QString
                     && stockData.m_beginTime >= monthStockData.m_beginTime
                     && stockData.m_endTime <= monthStockData.m_endTime)
             {
-                for (int j=0; j<ARRAY_SIZE(monthStockData.m_data); j++)
-                {
-                    result += monthStockData.m_data[j] + SPLIT_SPACE;
-                }
+                currentMonthStockData = monthStockData;
                 break;
             }
         }
@@ -517,6 +516,29 @@ void StockDataWriter::writeStockMonthContent(const StockData& stockData, QString
         break;
     }
 
+    // 输出日线数据
+    for (int i=0; i<dayLineDatas.size(); i++)
+    {
+        if (i != 0 && i == dayLineDatas.size() - 1)
+        {
+            // 最后一个要换行
+            result += NEW_LINE;
+        }
+        result += dayLineDatas[i].m_stockName + SPLIT_SPACE;
+        result += currentMonthStockData.m_lunarTime + SPLIT_SPACE;
+        result += QString::number(dayLineDatas[i].m_zhangFu, 'f', 2) + "%" + SPLIT_SPACE;
+        result += QString::fromWCharArray(L"共%1天").arg(dayLineDatas[i].m_totalDay) + SPLIT_SPACE;
+        QString huanShou = QString::number(dayLineDatas[i].m_huanShou, 'f', 2);
+        result += QString::fromWCharArray(L"换手%1").arg(huanShou) + "%" + SPLIT_SPACE;
+    }
+
+    // 输出6宫内容
+    for (int j=0; j<ARRAY_SIZE(currentMonthStockData.m_data); j++)
+    {
+        result += currentMonthStockData.m_data[j] + SPLIT_SPACE;
+    }
+
+    result += NEW_LINE;
     result += NEW_LINE;
 }
 
@@ -526,6 +548,11 @@ void StockDataWriter::writeStockDayContent(const StockData& stockData, QString& 
     QVector<DayLineData> dayLineDatas;
     for (int i=STOCK_TYPE_ZHISHU; i>=STOCK_TYPE_GEGU; i--)
     {
+        if (!SettingManager::getInstance()->m_stockSetting[i].m_enable)
+        {
+            continue;
+        }
+
         QVector<DayLineData>& allDayDatas = StockDataManager::getInstance()->m_dataManagers[i]->m_dayLineDatas[STOCK_DATA_DAY];
         QVector<DayLineData> datas;
         for (const auto& dayData : allDayDatas)
@@ -562,7 +589,7 @@ void StockDataWriter::writeStockDayContent(const StockData& stockData, QString& 
     // 输出日线数据
     for (int i=0; i<dayLineDatas.size(); i++)
     {
-        if (i == dayLineDatas.size() - 1)
+        if (i != 0 && i == dayLineDatas.size() - 1)
         {
             // 最后一个要换行
             result += NEW_LINE;
@@ -580,5 +607,6 @@ void StockDataWriter::writeStockDayContent(const StockData& stockData, QString& 
         result += stockData.m_data[j] + SPLIT_SPACE;
     }
 
+    result += NEW_LINE;
     result += NEW_LINE;
 }
