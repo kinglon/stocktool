@@ -8,7 +8,7 @@
 #include <QJsonArray>
 
 SettingManager::SettingManager()
-{
+{    
     load();
 }
 
@@ -45,10 +45,16 @@ void SettingManager::load()
     {
         QJsonObject stockSettingJsonObject = stockSettingJsonArray[i].toObject();
         m_stockSetting[i].m_stockPath = stockSettingJsonObject["path"].toString();
+        m_stockSetting[i].m_enableZhangDie = stockSettingJsonObject["enableZhangDie"].toBool();
+        m_stockSetting[i].m_zhangDieStart = stockSettingJsonObject["zhangDieStart"].toDouble();
+        m_stockSetting[i].m_zhangDieEnd = stockSettingJsonObject["zhangDieEnd"].toDouble();
+        m_stockSetting[i].m_kuoJianPercent = stockSettingJsonObject["kuoJianPercent"].toDouble();
     }
 
     m_savedPath = root["savedPath"].toString();
     m_cacheData = root["cacheData"].toBool();
+    m_recgDateStart = root["recgDateStart"].toInt();
+    m_recgDateEnd = root["recgDateEnd"].toInt();
 }
 
 void SettingManager::save()
@@ -61,11 +67,17 @@ void SettingManager::save()
     {
         QJsonObject stockSettingJsonObject;
         stockSettingJsonObject["path"] = m_stockSetting[i].m_stockPath;
+        stockSettingJsonObject["enableZhangDie"] = m_stockSetting[i].m_enableZhangDie;
+        stockSettingJsonObject["zhangDieStart"] = m_stockSetting[i].m_zhangDieStart;
+        stockSettingJsonObject["zhangDieEnd"] = m_stockSetting[i].m_zhangDieEnd;
+        stockSettingJsonObject["kuoJianPercent"] = m_stockSetting[i].m_kuoJianPercent;
         stockSettingJsonArray.append(stockSettingJsonObject);
     }
     root["stockSetting"] = stockSettingJsonArray;
     root["savedPath"] = m_savedPath;
     root["cacheData"] = m_cacheData;
+    root["recgDateStart"] = m_recgDateStart;
+    root["recgDateEnd"] = m_recgDateEnd;
 
     QJsonDocument jsonDocument(root);
     QByteArray jsonData = jsonDocument.toJson(QJsonDocument::Indented);

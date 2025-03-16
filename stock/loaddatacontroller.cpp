@@ -16,15 +16,46 @@ StockFileScanner::StockFileScanner(QObject *parent)
 
 void StockFileScanner::run()
 {    
-    QDir dir(m_rootDir);
-    QDir::Filters filters = QDir::Dirs | QDir::NoDotAndDotDot;
-    QFileInfoList fileInfoList = dir.entryInfoList(filters);
     QStringList suffixes;
     suffixes.append(QString::fromWCharArray(L"年.csv"));
     suffixes.append(QString::fromWCharArray(L"月.csv"));
     suffixes.append(QString::fromWCharArray(L"日.csv"));
     suffixes.append(QString::fromWCharArray(L"时.csv"));
     suffixes.append(QString::fromWCharArray(L"限.csv"));
+
+    // 如果当前目录就是股票目录，直接加载
+    QDir dir(m_rootDir);
+    QFileInfoList fileInfoList = dir.entryInfoList(QDir::Files);
+    bool isStockDir = false;
+    foreach (const QFileInfo &fileInfo, fileInfoList)
+    {
+        foreach (const QString& suffix, suffixes)
+        {
+            if (fileInfo.fileName().indexOf(suffix) > 0)
+            {
+                isStockDir = true;
+                m_stockFiles.append(fileInfo.absoluteFilePath());
+                m_industryNames.append("");
+            }
+        }
+
+        if (fileInfo.fileName().indexOf(QString::fromWCharArray(L"日线")) > 0)
+        {
+            isStockDir = true;
+            m_stockFiles.append(fileInfo.absoluteFilePath());
+            m_industryNames.append("");
+        }
+    }
+
+    if (isStockDir)
+    {
+        emit runFinish();
+        return;
+    }
+
+    QDir::Filters filters = QDir::Dirs | QDir::NoDotAndDotDot;
+    fileInfoList = dir.entryInfoList(filters);
+
     foreach (const QFileInfo &fileInfo, fileInfoList)
     {               
         bool found = false;
